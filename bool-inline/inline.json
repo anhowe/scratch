@@ -23,8 +23,15 @@
   },
   "variables": {
     "concatString": "[concat('samplestring',parameters('sampleString'))]",
-    "concatInt": "[concat('sampleint', parameters('sampleInt'))]",
-    "concatBool": "[concat('samplebool', parameters('sampleBool'))]"
+    "concatInt": "[concat('sampleint', parameters('sampleInt'))]"
   },
-  "resources": []
+  "resources": [
+    {
+      "type": "Microsoft.Compute/availabilitySets",
+      "name": "[concat('samplebool', parameters('sampleBool'))]",
+      "apiVersion": "2015-06-15",
+      "location": "[parameters('location')]",
+      "properties": {}
+    }
+  ]
 }
