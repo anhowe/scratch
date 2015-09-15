@@ -29,7 +29,7 @@
   "resources": [
     {
       "type": "Microsoft.Compute/availabilitySets",
-      "name": "[concat('availabilitySet1', variables('sampleBool1'))]",
+      "name": "[concat('availabilitySet2', variables('sampleBool1'))]",
       "apiVersion": "2015-06-15",
       "location": "[resourceGroup().location]",
       "properties": {}
