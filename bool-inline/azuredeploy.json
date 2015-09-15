@@ -1,0 +1,55 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "sampleString": {
+      "type": "string",
+      "defaultValue": "hello",
+      "metadata": {
+        "description": "This is a sample string"
+      }
+    },
+    "sampleInt": {
+      "type": "int",
+      "defaultValue": 5,
+      "metadata": {
+        "description": "This is a sample int"
+      }
+    },
+    "sampleBool": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "This is a sample bool"
+      }
+    }
+  },
+  "variables": {
+  },
+  "resources": [
+    {
+      "apiVersion": "2015-01-01",
+      "type": "Microsoft.Resources/deployments",
+      "name": "createVariables",
+      "dependsOn": [],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "https://raw.githubusercontent.com/anhowe/scratch/master/bool-inline/inline.json",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "sampleString": {
+            "value": "[parameters('sampleString')]"
+          },
+          "sampleInt": {
+            "value": "[parameters('sampleInt')]"
+          },
+          "sampleBool": {
+            "value": "[parameters('sampleBool')]"
+          }
+        }
+      }
+    }
+  ]
+}
