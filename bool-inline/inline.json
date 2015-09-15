@@ -28,9 +28,9 @@
   "resources": [
     {
       "type": "Microsoft.Compute/availabilitySets",
-      "name": "[concat('samplebool', parameters('sampleBool'))]",
+      "name": "[concat('availabilitySet1', parameters('sampleBool'))]",
       "apiVersion": "2015-06-15",
-      "location": "[parameters('location')]",
+      "location": "[resourceGroup().location]",
       "properties": {}
     }
   ]
