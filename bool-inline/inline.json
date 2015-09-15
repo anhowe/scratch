@@ -28,11 +28,13 @@
   },
   "resources": [
     {
-      "type": "Microsoft.Compute/availabilitySets",
-      "name": "[concat('availabilitySet2', variables('sampleBool1'))]",
-      "apiVersion": "2015-06-15",
-      "location": "[resourceGroup().location]",
-      "properties": {}
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "anhowe0902oms",
+      "apiVersion": "2015-05-01-preview",
+      "location": "Standard_GRS",
+      "properties": {
+        "accountType": "[variables('storageAccountType')]"
+      }
     }
   ]
 }
