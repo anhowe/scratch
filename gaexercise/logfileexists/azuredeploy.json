@@ -26,6 +26,24 @@
       "metadata": {
         "description": "Unique DNS Name for the Public IP used to access the Virtual Machine."
       }
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_D14",
+      "allowedValues": [
+        "Standard_A1",
+        "Standard_D1",
+        "Standard_D2",
+        "Standard_D3",
+        "Standard_D4",
+        "Standard_D11",
+        "Standard_D12",
+        "Standard_D13",
+        "Standard_D14"
+      ],
+      "metadata": {
+        "description": "The size of the Virtual Machine."
+      }
     }
   },
   "variables": {
@@ -42,7 +60,7 @@
     "publicIPAddressType": "Dynamic",
     "vmStorageAccountContainerName": "vhds",
     "vmName": "linxuvm",
-    "vmSize": "Standard_D2",
+    "vmSize": "[parameters('vmSize')]",
     "virtualNetworkName": "MyVNET",
     "windowsOSVersion": "2012-R2-Datacenter",
     "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
@@ -173,7 +191,7 @@
         "type": "CustomScriptForLinux",
         "typeHandlerVersion": "1.2",
         "settings": {
-          "commandToExecute": "/bin/bash -c 'echo \"while :; do date ; host jumpbox ; wget -O/dev/null http://google.com ; ifconfig ; ip a ;  sleep 1 ; done\" | nohup /bin/bash > /var/log/azure/firstinstall.log 2>&1 &'"
+          "commandToExecute": "/bin/bash -c 'echo \"while :; do date ; host linxuvm ; wget -O/dev/null http://google.com ; ifconfig ; ip a ;  sleep 1 ; done\" | nohup /bin/bash > /var/log/azure/firstinstall.log 2>&1 &'"
         }
       }
     }
