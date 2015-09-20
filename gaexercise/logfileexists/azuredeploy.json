@@ -59,7 +59,7 @@
     "publicIPAddressName": "myPublicIP",
     "publicIPAddressType": "Dynamic",
     "vmStorageAccountContainerName": "vhds",
-    "vmName": "linxuvm",
+    "vmName": "linuxvm",
     "vmSize": "[parameters('vmSize')]",
     "virtualNetworkName": "MyVNET",
     "windowsOSVersion": "2012-R2-Datacenter",
@@ -191,7 +191,7 @@
         "type": "CustomScriptForLinux",
         "typeHandlerVersion": "1.2",
         "settings": {
-          "commandToExecute": "/bin/bash -c 'echo \"while :; do date ; host linxuvm ; wget -O/dev/null http://google.com ; ifconfig ; ip a ;  sleep 1 ; done\" | nohup /bin/bash > /var/log/azure/firstinstall.log 2>&1 &'"
+          "commandToExecute": "/bin/bash -c 'echo \"while :; do date ; host linuxvm ; wget -O/dev/null http://google.com ; ifconfig ; ip a ;  sleep 1 ; done\" | nohup /bin/bash > /var/log/azure/firstinstall.log 2>&1 &'"
         }
       }
     }
