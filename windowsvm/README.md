@@ -1,4 +1,4 @@
-# Play with a windows VM
+# Scaling to 12800 static IP addresses using subnet 10.0.0.0/18
 
 This demonstrates updating registry during installation so that browser settings can be modified.
 

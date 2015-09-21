@@ -1,4 +1,4 @@
-# Dynamic NAT Rules
+# Scaling across 1296 storage accounts
 
 This enables scaling to 12960 vms by spreading across a 2 character prefix, where each prefix is 36 characters.
 
