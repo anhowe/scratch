@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {},
+  "variables": {
+    "newStorageAccountNamePrefix": "anhowe921e",
+    "vmsPerStorageAccount": 10,
+    "agentCount": 20,
+    "storageAccountsCount": "[add(div(variables('agentCount'), variables('vmsPerStorageAccount')), mod(add(mod(variables('agentCount'), variables('vmsPerStorageAccount')),2), add(mod(variables('agentCount'), variables('vmsPerStorageAccount')),1)))]",
+    "storageAccountType": "Standard_LRS",
+    "storageAccountPrefix": [
+      "0","6","c","i","o","u","1","7","d","j","p","v",
+      "2","8","e","k","q","w","3","9","f","l","r","x",
+      "4","a","g","m","s","y","5","b","h","n","t","z"
+    ],
+    "storageAccountPrefixCount": "[length(variables('storageAccountPrefix'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[concat(variables('storageAccountPrefix')[mod(copyIndex(),variables('storageAccountPrefixCount'))],variables('storageAccountPrefix')[div(copyIndex(),variables('storageAccountPrefixCount'))],variables('newStorageAccountNamePrefix'),copyIndex(1))]",
+      "apiVersion": "2015-05-01-preview",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "vmLoopNode",
+        "count": "[variables('storageAccountsCount')]"
+      },
+      "properties": {
+        "accountType": "[variables('storageAccountType')]"
+      }
+    }
+  ]
+}

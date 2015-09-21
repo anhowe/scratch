@@ -1,0 +1,68 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {},
+  "variables": {
+    "virtualNetworkName": "VNET",
+    "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
+    "subnetName": "Subnet",
+    "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
+    "addressPrefix": "10.0.0.0/16",
+    "subnetPrefix": "10.0.0.0/18",
+    "nodesPerIPv4Octet": 200,
+    "ipv4OctetOffset": 50,
+    "agentVMNamePrefix": "agent",
+    "agentCount": 220
+  },
+  "resources": [
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[variables('virtualNetworkName')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [],
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('addressPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('subnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('subnetPrefix')]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(variables('agentVMNamePrefix'), copyIndex(1), '-nic')]",
+      "dependsOn": [
+        "[variables('vnetID')]"
+      ],
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "nicLoopNode",
+        "count": "[variables('agentCount')]"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipConfigNode",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[concat(split(variables('subnetPrefix'),'0.0/18')[0], div(copyIndex(),variables('nodesPerIPv4Octet')), '.', add(mod(copyIndex(),variables('nodesPerIPv4Octet')), variables('ipv4OctetOffset')))]",
+              "subnet": {
+                "id": "[variables('subnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
