@@ -66,12 +66,10 @@ Before running the walkthrough ensure you have chosen "true" for "marathonEnable
  2. windows jumpbox - remote desktop to the windows jumpbox
  3. no jumpbox - SSH to port 2211 on your NAT creating a tunnel to port 5050 and port 8080.  Then use the browser of your desktop to browse these ports.
 
-3. browse to the Mesos UI http://c1master1:5050
- 1. linux jumpbox - in top right corner choose Applications->Internet->Chrome and browse to http://c1master1:5050
- 2. windows jumpbox - open browser and browse to http://c1master1:5050
+3. browse to the Mesos UI http://master1:5050
+ 1. linux jumpbox - in top right corner choose Applications->Internet->Chrome and browse to http://master1:5050
+ 2. windows jumpbox - open browser and browse to http://master1:5050
  3. no jumpbox - browse to http://localhost:5050
-
-NOTE: if you changed the default prefix while creating the cluster using the ARM template, the name of the cluster is going to be different. The url to use is http://"prefix you used"master1:5050
 
 4. Browse Mesos:
  1. scroll down the page and notice your resources of CPU and memory.  These are your agents
@@ -91,7 +89,7 @@ NOTE: if you changed the default prefix while creating the cluster using the ARM
 6. start a long running job in Marathon
  1. click "+New App"
  2. type "myfirstapp" for the id
- 3. type "/bin/bash "for i in {1..5}; do echo MyFirstApp $i; sleep 1; done" for the command
+ 3. type "/bin/bash -c "for i in {1..5}; do echo MyFirstApp $i; sleep 1; done" for the command
  4. scroll to bottom and click create
 
  ![Image of Marathon new app dialog](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/marathon-newapp.png)

@@ -81,10 +81,19 @@
     }
   },
   "variables": {
-    "adminUsername":"[parameters('adminUsername')]",
-    "marathonEnabled":true,
-    "chronosEnabled":true,
-    "swarmEnabled":false,
+    "adminUsername": "[parameters('adminUsername')]",
+    "adminPassword": "[parameters('adminPassword')]",
+    "jumpboxEndpointDNSNamePrefix": "[tolower(parameters('jumpboxEndpointDNSNamePrefix'))]",
+    "managementEndpointDNSNamePrefix": "[tolower(parameters('managementEndpointDNSNamePrefix'))]",
+    "applicationEndpointDNSNamePrefix": "[tolower(parameters('applicationEndpointDNSNamePrefix'))]",
+    "agentCount": "[parameters('agentCount')]",
+    "masterCount": "[parameters('masterCount')]",
+    "agentVMSize": "[parameters('agentVMSize')]",
+    "sshRSAPublicKey": "[parameters('sshRSAPublicKey')]",
+
+    "marathonEnabled": true,
+    "chronosEnabled": true,
+    "swarmEnabled": true,
     "osImagePublisher": "Canonical",
     "osImageOffer": "UbuntuServer",
     "osImageSKU": "14.04.3-LTS",
@@ -110,22 +119,19 @@
     "omsStorageAccount": "none",
     "omsStorageAccountKey": "none",
     "postInstallScriptURI": "disabled",
-    "clusterCustomDataInstallYaml": "",
-    "clusterInstallParameters": "[concat(parameters('masterCount'), ' ', variables('masterVMNamePrefix'), ' ',variables('swarmEnabled'), ' ', variables('marathonEnabled'), ' ', variables('chronosEnabled'), ' ', variables('omsStorageAccount'), ' ', variables('omsStorageAccountKey'), ' ', variables('adminUsername'), ' \"', parameters('sshRSAPublicKey'), '\" ',)]",
-    
-    "jumpboxVMNamePrefix": "jumpbox",
+    "clusterInstallParameters": "[concat(variables('masterCount'), ' ', variables('masterVMNamePrefix'), ' ',variables('swarmEnabled'), ' ', variables('marathonEnabled'), ' ', variables('chronosEnabled'), ' ', variables('omsStorageAccount'), ' ', variables('omsStorageAccountKey'), ' ', variables('adminUsername'), ' \"', variables('sshRSAPublicKey'), '\" ',)]",
+
     "jumpboxAddr": 4,
-    "jumpboxVMName": "[concat(variables('jumpboxVMNamePrefix'), '1')]",
+    "jumpboxVMName": "jumpbox1",
     "jumpboxVMSize":"Standard_D1",
 
-    "jumpboxLinuxCustomDataInstallYaml": "",
-    "jumpboxLinuxInstallParameters": "[concat(parameters('adminUsername'), ' \"', parameters('sshRSAPublicKey'), '\"')]",
-    "jumpboxLinuxCustomScript": "[concat('nohup /bin/bash /opt/azure/containers/jumpboxinstall.sh ',variables('jumpboxLinuxInstallParameters'),' >> /var/log/azure/jumpbox-bootstrap.log 2>&1 &')]"
+    "jumpboxLinuxInstallParameters": "[concat(variables('adminUsername'), ' \"', variables('sshRSAPublicKey'), '\"')]",
+    "jumpboxLinuxCustomScript": "[concat('nohup /bin/bash /opt/azure/containers/jumpboxinstall.sh ',variables('jumpboxLinuxInstallParameters'),' >> /var/log/azure/jumpbox-bootstrap.log 2>&1 &')]",
 
     "setBrowserFirstTabDefaultPrefix": "powershell.exe -ExecutionPolicy Unrestricted -command \"New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer' ; New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\BrowserEmulation' ; New-ItemProperty -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\BrowserEmulation' -Name IntranetCompatibilityMode -Value 0 -Type DWord; New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Main' ; New-ItemProperty -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Main' -Name 'Start Page' -Type String -Value http://\"",
     "setBrowserFirstTabDefaultSuffix": "1:5050",
-    "jumpboxWindowsCustomScript": "[concat(variables('setBrowserFirstTabDefaultPrefix'),variables('masterVMNamePrefix'),variables('setBrowserFirstTabDefaultSuffix'))]"
-    
+    "jumpboxWindowsCustomScript": "[concat(variables('setBrowserFirstTabDefaultPrefix'),variables('masterVMNamePrefix'),variables('setBrowserFirstTabDefaultSuffix'))]",
+
     "masterFirstAddr": 5,
     "masterVMNamePrefix": "master",
     "masterAvailabilitySet": "masterAvailabilitySet",
@@ -136,7 +142,7 @@
     "masterLbIPConfigID": "[concat(variables('masterLbID'),'/frontendIPConfigurations/', variables('masterLbIPConfigName'))]",
     "masterLbBackendPoolName": "master-pool",
     "masterCustomScript": "[concat('/bin/bash /opt/azure/containers/clusterinstall.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/cluster-bootstrap.log 2>&1')]",
-    
+
     "agentFirstAddr": 20,
     "agentVMNamePrefix": "agent",
     "agentAvailabilitySet": "agentAvailabilitySet",
@@ -145,7 +151,7 @@
     "appNodesLbIPConfigName": "NodesAppLBFrontEnd",
     "appNodesLbIPConfigID": "[concat(variables('appNodesLbID'),'/frontendIPConfigurations/', variables('appNodesLbIPConfigName'))]",
     "appNodesLbBackendPoolName": "node-app-pool",
-    "agentStorageAccountsCount": "[add(div(parameters('agentCount'), variables('vmsPerStorageAccount')), mod(add(mod(parameters('agentCount'), variables('vmsPerStorageAccount')),2), add(mod(parameters('agentCount'), variables('vmsPerStorageAccount')),1)))]",
+    "agentStorageAccountsCount": "[add(div(variables('agentCount'), variables('vmsPerStorageAccount')), mod(add(mod(variables('agentCount'), variables('vmsPerStorageAccount')),2), add(mod(variables('agentCount'), variables('vmsPerStorageAccount')),1)))]",
     "agentsPerIPv4Octet": 200,
     "agentCustomScript": "[concat('nohup /bin/bash /opt/azure/containers/clusterinstall.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/cluster-bootstrap.log 2>&1 &')]"
   },
@@ -255,12 +261,12 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
-      "name": "[parameters('jumpboxEndpointDNSNamePrefix')]",
+      "name": "[variables('jumpboxEndpointDNSNamePrefix')]",
       "location": "[resourceGroup().location]",
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
         "dnsSettings": {
-          "domainNameLabel": "[parameters('jumpboxEndpointDNSNamePrefix')]"
+          "domainNameLabel": "[variables('jumpboxEndpointDNSNamePrefix')]"
         }
       }
     },
@@ -270,7 +276,7 @@
       "name": "[concat(variables('jumpboxVMName'), '-nic')]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/publicIPAddresses/', parameters('jumpboxEndpointDNSNamePrefix'))]",
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('jumpboxEndpointDNSNamePrefix'))]",
         "[variables('vnetID')]"
       ],
       "properties": {
@@ -281,7 +287,7 @@
               "privateIPAllocationMethod": "Static",
               "privateIPAddress": "[concat(split(variables('subnetPrefix'),'0/18')[0], variables('jumpboxAddr'))]",
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('jumpboxEndpointDNSNamePrefix'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('jumpboxEndpointDNSNamePrefix'))]"
               },
               "subnet": {
                 "id": "[variables('subnetRef')]"
@@ -307,8 +313,8 @@
         "osProfile": {
           "computername": "[variables('jumpboxVMName')]",
           "adminUsername": "[variables('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]",
-          "customData": "[base64(variables('jumpboxLinuxCustomDataInstallYaml'))]"
+          "adminPassword": "[variables('adminPassword')]",
+          "customData": "[base64('jumpboxLinuxCustomDataInstallYaml')]"
         },
         "storageProfile": {
           "imageReference": {
@@ -362,12 +368,12 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
-      "name": "[parameters('managementEndpointDNSNamePrefix')]",
+      "name": "[variables('managementEndpointDNSNamePrefix')]",
       "location": "[resourceGroup().location]",
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
         "dnsSettings": {
-          "domainNameLabel": "[parameters('managementEndpointDNSNamePrefix')]"
+          "domainNameLabel": "[variables('managementEndpointDNSNamePrefix')]"
         }
       }
     },
@@ -377,7 +383,7 @@
       "type": "Microsoft.Network/loadBalancers",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/publicIPAddresses/', parameters('managementEndpointDNSNamePrefix'))]"
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('managementEndpointDNSNamePrefix'))]"
       ],
       "properties": {
         "frontendIPConfigurations": [
@@ -385,7 +391,7 @@
             "name": "[variables('masterLbIPConfigName')]",
             "properties": {
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('managementEndpointDNSNamePrefix'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('managementEndpointDNSNamePrefix'))]"
               }
             }
           }
@@ -404,7 +410,7 @@
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "masterLbLoopNode",
-        "count": "[parameters('masterCount')]"
+        "count": "[variables('masterCount')]"
       },
       "dependsOn": [
         "[variables('masterLbID')]"
@@ -426,7 +432,7 @@
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "nicLoopNode",
-        "count": "[parameters('masterCount')]"
+        "count": "[variables('masterCount')]"
       },
       "dependsOn": [
         "[variables('masterLbID')]",
@@ -465,7 +471,7 @@
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "vmLoopNode",
-        "count": "[parameters('masterCount')]"
+        "count": "[variables('masterCount')]"
       },
       "dependsOn": [
         "[concat('Microsoft.Network/networkInterfaces/',variables('masterVMNamePrefix'), copyIndex(1), '-nic')]",
@@ -482,8 +488,8 @@
         "osProfile": {
           "computername": "[concat(variables('masterVMNamePrefix'), copyIndex(1))]",
           "adminUsername": "[variables('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]",
-          "customData": "[base64(variables('clusterCustomDataInstallYaml'))]"
+          "adminPassword": "[variables('adminPassword')]",
+          "customData": "[base64('clusterCustomDataInstallYaml')]"
         },
         "storageProfile": {
           "imageReference": {
@@ -517,7 +523,7 @@
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "vmLoopNode",
-        "count": "[parameters('masterCount')]"
+        "count": "[variables('masterCount')]"
       },
       "dependsOn": [
         "[concat('Microsoft.Compute/virtualMachines/', variables('masterVMNamePrefix'), copyIndex(1))]"
@@ -555,12 +561,12 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
-      "name": "[parameters('applicationEndpointDNSNamePrefix')]",
+      "name": "[variables('applicationEndpointDNSNamePrefix')]",
       "location": "[resourceGroup().location]",
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
         "dnsSettings": {
-          "domainNameLabel": "[parameters('applicationEndpointDNSNamePrefix')]"
+          "domainNameLabel": "[variables('applicationEndpointDNSNamePrefix')]"
         }
       }
     },
@@ -570,7 +576,7 @@
       "type": "Microsoft.Network/loadBalancers",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/publicIPAddresses/', parameters('applicationEndpointDNSNamePrefix'))]"
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('applicationEndpointDNSNamePrefix'))]"
       ],
       "properties": {
         "frontendIPConfigurations": [
@@ -578,7 +584,7 @@
             "name": "[variables('appNodesLbIPConfigName')]",
             "properties": {
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('applicationEndpointDNSNamePrefix'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('applicationEndpointDNSNamePrefix'))]"
               }
             }
           }
@@ -660,7 +666,7 @@
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "nicLoopNode",
-        "count": "[parameters('agentCount')]"
+        "count": "[variables('agentCount')]"
       },
       "dependsOn": [
         "[variables('appNodesLbID')]",
@@ -693,7 +699,7 @@
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "vmLoopNode",
-        "count": "[parameters('agentCount')]"
+        "count": "[variables('agentCount')]"
       },
       "dependsOn": [
         "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountPrefixes')[mod(div(copyIndex(),variables('vmsPerStorageAccount')),variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(div(copyIndex(),variables('vmsPerStorageAccount')),variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),add(1,div(copyIndex(),variables('vmsPerStorageAccount'))))]",
@@ -705,13 +711,13 @@
           "id": "[resourceId('Microsoft.Compute/availabilitySets',variables('agentAvailabilitySet'))]"
         },
         "hardwareProfile": {
-          "vmSize": "[parameters('agentVMSize')]"
+          "vmSize": "[variables('agentVMSize')]"
         },
         "osProfile": {
           "computername": "[concat(variables('agentVMNamePrefix'), copyIndex(1))]",
           "adminUsername": "[variables('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]",
-          "customData": "[base64(variables('clusterCustomDataInstallYaml'))]"
+          "adminPassword": "[variables('adminPassword')]",
+          "customData": "[base64('clusterCustomDataInstallYaml')]"
         },
         "storageProfile": {
           "imageReference": {
@@ -745,7 +751,7 @@
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "vmLoopNode",
-        "count": "[parameters('agentCount')]"
+        "count": "[variables('agentCount')]"
       },
       "dependsOn": [
         "[concat('Microsoft.Compute/virtualMachines/', variables('agentVMNamePrefix'), copyIndex(1))]"
@@ -764,15 +770,15 @@
   "outputs": {
     "jumpboxFQDN": {
       "type": "string",
-      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', parameters('jumpboxEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
+      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('jumpboxEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
     },
     "masterFQDN": {
       "type": "string",
-      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', parameters('managementEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
+      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('managementEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
     },
     "applicationFQDN": {
       "type": "string",
-      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', parameters('applicationEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
+      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('applicationEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
     }
   }
 }
