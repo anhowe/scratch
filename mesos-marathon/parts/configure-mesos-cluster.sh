@@ -20,25 +20,23 @@ ps ax
 # Parameters
 #############
 
-MASTERCOUNT=$1
-MASTERMODE=$2
-MASTERPREFIX=$3
-SWARMENABLED=$4
-MARATHONENABLED=$5
-CHRONOSENABLED=$6
-ACCOUNTNAME=$7
+MASTERCOUNT=${1}
+MASTERPREFIX=${2}
+SWARMENABLED=${3}
+MARATHONENABLED=${4}
+CHRONOSENABLED=${5}
+ACCOUNTNAME=${6}
 set +x
-ACCOUNTKEY=$8
+ACCOUNTKEY=${7}
 set -x
-AZUREUSER=$9
-SSHKEY=${10}
+AZUREUSER=${8}
+SSHKEY=${9}
 HOMEDIR="/home/$AZUREUSER"
 VMNAME=`hostname`
 VMNUMBER=`echo $VMNAME | sed 's/.*[^0-9]\([0-9]\+\)*$/\1/'`
 VMPREFIX=`echo $VMNAME | sed 's/\(.*[^0-9]\)*[0-9]\+$/\1/'`
 
 echo "Master Count: $MASTERCOUNT"
-echo "Master Mode: $MASTERMODE"
 echo "Master Prefix: $MASTERPREFIX"
 echo "vmname: $VMNAME"
 echo "VMNUMBER: $VMNUMBER, VMPREFIX: $VMPREFIX"
@@ -151,12 +149,7 @@ fi
 isagent()
 {
   if ismaster ; then
-    if [ "$MASTERMODE" == "masters-are-agents" ]
-    then
-      return 0
-    else
-      return 1
-    fi
+    return 1
   else
     return 0
   fi

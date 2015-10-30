@@ -5,27 +5,21 @@ import gzip
 import StringIO
 import sys
 
-YAML_FILE = "customdata.yml"
 CLUSTER_INSTALL_SCRIPT = "configure-mesos-cluster.sh"
 CLUSTER_INSTALL_SCRIPT_GZ = "configure-mesos-cluster.sh.gz"
-
-def cleanfiles():
-    # delete the existing yaml file
-    if os.path.exists(YAML_FILE):
-        os.remove(YAML_FILE)
+ARM_TEMPLATE_TEMPLATE = "azuredeploy.json"
+ARM_WINDOWS_TEMPLATE = "../azuredeploy.winjb.json"
+CLUSTER_YAML_REPLACE_STRING = "customDataClusterInstallYamlToReplace"
 
 def buildClusterYMLFile():
-    clustYamlFile="""#cloud-config
+    clusterYamlFile="""#cloud-config
 
 write_files:
  -  encoding: gzip
     content: !!binary |
         %s
     path: /opt/azure/containers/clusterinstall.sh
-    permissions: '0744'
-
-runcmd:
- - /bin/bash /opt/azure/containers/clusterinstall.sh arg1 arg2 arg3 > /var/log/azure/clusterinstall.log
+    permissions: "0744"
 """
     
     # read the script file
@@ -38,18 +32,34 @@ runcmd:
         f.write(content)
     b64GzipStream=base64.b64encode(compressedbuffer.getvalue())
     
-    # build the yaml file with base 64 gzip
-    with open(YAML_FILE, 'w') as output:
-        output.write(clustYamlFile % (b64GzipStream))
-        
-if __name__ == "__main__":
-    # clean the files
-    cleanfiles()
+    return clusterYamlFile % (b64GzipStream)
     
+def convertToOneArmTemplateLine(clusterYamlFile):
+    # remove the \r\n
+    return "\\n".join(clusterYamlFile.split("\n"))
+
+def buildArmTemplateWindowsJumpbox(oneArmYamlFile):
+    armTemplate = []
+    with open(ARM_TEMPLATE_TEMPLATE) as f:
+        armTemplate = f.read()
+    
+    # global replacement of the YAML string
+    armTemplate = oneArmYamlFile.join(armTemplate.split(CLUSTER_YAML_REPLACE_STRING))
+    
+    with open(ARM_WINDOWS_TEMPLATE, "w") as f:
+        f.write(armTemplate)
+
+if __name__ == "__main__":
     # build the yml file for cluster
-    buildClusterYMLFile()
+    clusterYamlFile = buildClusterYMLFile()
+    
+    # convert yml file to one line
+    oneArmYamlFile = convertToOneArmTemplateLine(clusterYamlFile)
+    
     # build the yml file for devbox
     # build the ARM template for jumpboxless
     # build the ARM template for linux jumpbox
     # build the ARM template for windows jumpbox
+    buildArmTemplateWindowsJumpbox(oneArmYamlFile)
+    
     
