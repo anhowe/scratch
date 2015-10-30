@@ -2,25 +2,32 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    "adminUsername": {
+      "type": "string",
+      "defaultValue": "azureuser",
+      "metadata": {
+        "description": "User name for the Virtual Machine."
+      }
+    },
     "adminPassword": {
       "type": "securestring",
       "metadata": {
         "description": "Password for the Virtual Machine."
       }
     },
-    "jumpboxEndpointDNSName": {
+    "jumpboxEndpointDNSNamePrefix": {
       "type": "string",
       "metadata": {
         "description": "Sets the Domain name label for the jumpbox.  The concatenation of the domain name label and the regionalized DNS zone make up the fully qualified domain name associated with the public IP address."
       }
     },
-    "managementEndpointDNSName": {
+    "managementEndpointDNSNamePrefix": {
       "type": "string",
       "metadata": {
         "description": "Sets the Domain name label for the container service.  The concatenation of the domain name label and the regionalized DNS zone make up the fully qualified domain name associated with the public IP address."
       }
     },
-    "applicationEndpointDNSName": {
+    "applicationEndpointDNSNamePrefix": {
       "type": "string",
       "metadata": {
         "description": "Sets the Domain name label for the application.  The concatenation of the domain name label and the regionalized DNS zone make up the fully qualified domain name associated with the public IP address."
@@ -74,13 +81,10 @@
     }
   },
   "variables": {
-    "adminUsername":"azureuser",
+    "adminUsername":"[parameters('adminUsername')]",
     "marathonEnabled":true,
     "chronosEnabled":true,
     "swarmEnabled":false,
-    "masterVMNamePrefix": "master",
-    "agentVMNamePrefix": "agent",
-    "jumpboxVMNamePrefix": "jumpbox",
     "osImagePublisher": "Canonical",
     "osImageOffer": "UbuntuServer",
     "osImageSKU": "14.04.3-LTS",
@@ -91,9 +95,6 @@
     "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
     "addressPrefix": "10.0.0.0/16",
     "subnetPrefix": "10.0.0.0/18",
-    "jumpboxAddr": 4,
-    "masterFirstAddr": 5,
-    "agentFirstAddr": 20,
     "nsgName": "node-nsg",
     "nsgID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName'))]",
     "storageAccountType": "Standard_GRS",
@@ -109,18 +110,24 @@
     "omsStorageAccount": "none",
     "omsStorageAccountKey": "none",
     "postInstallScriptURI": "disabled",
-    "customDataClusterInstallYaml": "customDataClusterInstallYamlToReplace",
+    "clusterCustomDataInstallYaml": "",
     "clusterInstallParameters": "[concat(parameters('masterCount'), ' ', variables('masterVMNamePrefix'), ' ',variables('swarmEnabled'), ' ', variables('marathonEnabled'), ' ', variables('chronosEnabled'), ' ', variables('omsStorageAccount'), ' ', variables('omsStorageAccountKey'), ' ', variables('adminUsername'), ' \"', parameters('sshRSAPublicKey'), '\" ',)]",
     
+    "jumpboxVMNamePrefix": "jumpbox",
+    "jumpboxAddr": 4,
     "jumpboxVMName": "[concat(variables('jumpboxVMNamePrefix'), '1')]",
     "jumpboxVMSize":"Standard_D1",
-    "jumpboxOSImagePublisher": "MicrosoftVisualStudio",
-    "jumpboxOSImageOffer": "VisualStudio",
-    "jumpboxOSImageSKU": "VS-2015-Enterprise-AzureSDK-2.7-WS2012R2",
-    "jumpboxOSImageVersion": "latest",
+
+    "jumpboxLinuxCustomDataInstallYaml": "",
+    "jumpboxLinuxInstallParameters": "[concat(parameters('adminUsername'), ' \"', parameters('sshRSAPublicKey'), '\"')]",
+    "jumpboxLinuxCustomScript": "[concat('nohup /bin/bash /opt/azure/containers/jumpboxinstall.sh ',variables('jumpboxLinuxInstallParameters'),' >> /var/log/azure/jumpbox-bootstrap.log 2>&1 &')]"
+
     "setBrowserFirstTabDefaultPrefix": "powershell.exe -ExecutionPolicy Unrestricted -command \"New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer' ; New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\BrowserEmulation' ; New-ItemProperty -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\BrowserEmulation' -Name IntranetCompatibilityMode -Value 0 -Type DWord; New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Main' ; New-ItemProperty -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Main' -Name 'Start Page' -Type String -Value http://\"",
     "setBrowserFirstTabDefaultSuffix": "1:5050",
+    "jumpboxWindowsCustomScript": "[concat(variables('setBrowserFirstTabDefaultPrefix'),variables('masterVMNamePrefix'),variables('setBrowserFirstTabDefaultSuffix'))]"
     
+    "masterFirstAddr": 5,
+    "masterVMNamePrefix": "master",
     "masterAvailabilitySet": "masterAvailabilitySet",
     "masterLbName": "masterlb",
     "masterVMSize":"Standard_A1",
@@ -130,6 +137,8 @@
     "masterLbBackendPoolName": "master-pool",
     "masterCustomScript": "[concat('/bin/bash /opt/azure/containers/clusterinstall.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/cluster-bootstrap.log 2>&1')]",
     
+    "agentFirstAddr": 20,
+    "agentVMNamePrefix": "agent",
     "agentAvailabilitySet": "agentAvailabilitySet",
     "appLbName": "appLb",
     "appNodesLbID": "[resourceId('Microsoft.Network/loadBalancers',variables('appLbName'))]",
@@ -245,105 +254,6 @@
     },
     {
       "apiVersion": "2015-06-15",
-      "type": "Microsoft.Network/publicIPAddresses",
-      "name": "[parameters('jumpboxEndpointDNSName')]",
-      "location": "[resourceGroup().location]",
-      "properties": {
-        "publicIPAllocationMethod": "Dynamic",
-        "dnsSettings": {
-          "domainNameLabel": "[parameters('jumpboxEndpointDNSName')]"
-        }
-      }
-    },
-    {
-      "apiVersion": "2015-06-15",
-      "type": "Microsoft.Network/networkInterfaces",
-      "name": "[concat(variables('jumpboxVMName'), '-nic')]",
-      "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "[concat('Microsoft.Network/publicIPAddresses/', parameters('jumpboxEndpointDNSName'))]",
-        "[variables('vnetID')]"
-      ],
-      "properties": {
-        "ipConfigurations": [
-          {
-            "name": "ipConfig",
-            "properties": {
-              "privateIPAllocationMethod": "Static",
-              "privateIPAddress": "[concat(split(variables('subnetPrefix'),'0/18')[0], variables('jumpboxAddr'))]",
-              "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('jumpboxEndpointDNSName'))]"
-              },
-              "subnet": {
-                "id": "[variables('subnetRef')]"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "apiVersion": "2015-06-15",
-      "type": "Microsoft.Compute/virtualMachines",
-      "name": "[variables('jumpboxVMName')]",
-      "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "[concat('Microsoft.Network/networkInterfaces/', variables('jumpboxVMName'), '-nic')]",
-        "[variables('managementStorageAccountName')]"
-      ],
-      "properties": {
-        "hardwareProfile": {
-          "vmSize": "[variables('jumpboxVMSize')]"
-        },
-        "osProfile": {
-          "computername": "[variables('jumpboxVMName')]",
-          "adminUsername": "[variables('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]"
-        },
-        "storageProfile": {
-          "imageReference": {
-            "publisher": "[variables('jumpboxOSImagePublisher')]",
-            "offer": "[variables('jumpboxOSImageOffer')]",
-            "sku": "[variables('jumpboxOSImageSKU')]",
-            "version": "[variables('jumpboxOSImageVersion')]"
-          },
-          "osDisk": {
-            "name": "[concat(variables('jumpboxVMName'),'-osdisk')]",
-            "vhd": {
-              "uri": "[concat('http://', variables('managementStorageAccountName'), '.blob.core.windows.net/vhds/', variables('jumpboxVMName'), '-osdisk.vhd')]"
-            },
-            "caching": "ReadWrite",
-            "createOption": "FromImage"
-          }
-        },
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('jumpboxVMName'), '-nic'))]"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "type": "Microsoft.Compute/virtualMachines/extensions",
-      "name": "[concat(variables('jumpboxVMName'),'/installcustomscript')]",
-      "apiVersion": "2015-06-15",
-      "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachines/', variables('jumpboxVMName'))]"
-      ],
-      "properties": {
-        "publisher": "Microsoft.Compute",
-        "type": "CustomScriptExtension",
-        "typeHandlerVersion": "1.4",
-        "settings": {
-          "commandToExecute": "[concat(variables('setBrowserFirstTabDefaultPrefix'),variables('masterVMNamePrefix'),variables('setBrowserFirstTabDefaultSuffix'))]"
-        }
-      }
-    },
-    {
-      "apiVersion": "2015-06-15",
       "type": "Microsoft.Compute/availabilitySets",
       "name": "[variables('masterAvailabilitySet')]",
       "location": "[resourceGroup().location]",
@@ -352,12 +262,12 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
-      "name": "[parameters('managementEndpointDNSName')]",
+      "name": "[parameters('managementEndpointDNSNamePrefix')]",
       "location": "[resourceGroup().location]",
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
         "dnsSettings": {
-          "domainNameLabel": "[parameters('managementEndpointDNSName')]"
+          "domainNameLabel": "[parameters('managementEndpointDNSNamePrefix')]"
         }
       }
     },
@@ -367,7 +277,7 @@
       "type": "Microsoft.Network/loadBalancers",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/publicIPAddresses/', parameters('managementEndpointDNSName'))]"
+        "[concat('Microsoft.Network/publicIPAddresses/', parameters('managementEndpointDNSNamePrefix'))]"
       ],
       "properties": {
         "frontendIPConfigurations": [
@@ -375,7 +285,7 @@
             "name": "[variables('masterLbIPConfigName')]",
             "properties": {
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('managementEndpointDNSName'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('managementEndpointDNSNamePrefix'))]"
               }
             }
           }
@@ -473,7 +383,7 @@
           "computername": "[concat(variables('masterVMNamePrefix'), copyIndex(1))]",
           "adminUsername": "[variables('adminUsername')]",
           "adminPassword": "[parameters('adminPassword')]",
-          "customData": "[base64(variables('customDataClusterInstallYaml'))]"
+          "customData": "[base64(variables('clusterCustomDataInstallYaml'))]"
         },
         "storageProfile": {
           "imageReference": {
@@ -545,12 +455,12 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
-      "name": "[parameters('applicationEndpointDNSName')]",
+      "name": "[parameters('applicationEndpointDNSNamePrefix')]",
       "location": "[resourceGroup().location]",
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
         "dnsSettings": {
-          "domainNameLabel": "[parameters('applicationEndpointDNSName')]"
+          "domainNameLabel": "[parameters('applicationEndpointDNSNamePrefix')]"
         }
       }
     },
@@ -560,7 +470,7 @@
       "type": "Microsoft.Network/loadBalancers",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/publicIPAddresses/', parameters('applicationEndpointDNSName'))]"
+        "[concat('Microsoft.Network/publicIPAddresses/', parameters('applicationEndpointDNSNamePrefix'))]"
       ],
       "properties": {
         "frontendIPConfigurations": [
@@ -568,7 +478,7 @@
             "name": "[variables('appNodesLbIPConfigName')]",
             "properties": {
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('applicationEndpointDNSName'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('applicationEndpointDNSNamePrefix'))]"
               }
             }
           }
@@ -754,15 +664,15 @@
   "outputs": {
     "jumpboxFQDN": {
       "type": "string",
-      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', parameters('jumpboxEndpointDNSName'))).dnsSettings.fqdn]"
+      "value": "does not exist"
     },
     "masterFQDN": {
       "type": "string",
-      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', parameters('managementEndpointDNSName'))).dnsSettings.fqdn]"
+      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', parameters('managementEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
     },
     "applicationFQDN": {
       "type": "string",
-      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', parameters('applicationEndpointDNSName'))).dnsSettings.fqdn]"
+      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', parameters('applicationEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
     }
   }
 }
