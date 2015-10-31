@@ -4,62 +4,107 @@ import os
 import gzip
 import StringIO
 import sys
+import shutil
 
-CLUSTER_INSTALL_SCRIPT = "configure-mesos-cluster.sh"
-CLUSTER_INSTALL_SCRIPT_GZ = "configure-mesos-cluster.sh.gz"
-ARM_TEMPLATE_TEMPLATE = "azuredeploy.json"
-ARM_WINDOWS_TEMPLATE = "../azuredeploy.winjb.json"
-CLUSTER_YAML_REPLACE_STRING = "customDataClusterInstallYamlToReplace"
-
-def buildClusterYMLFile():
+# Function reads a script file specified by installScriptPath from disk,
+# and embeds it in a Yaml file as a base-64 enconded string to be
+# executed later by template
+def buildYamlFileWithScriptFile(installScriptPath):
+    gzipBuffer=StringIO.StringIO()
+    
     clusterYamlFile="""#cloud-config
 
 write_files:
  -  encoding: gzip
     content: !!binary |
         %s
-    path: /opt/azure/containers/clusterinstall.sh
+    path: /opt/azure/containers/%s
     permissions: "0744"
 """
-    
-    # read the script file
-    with open(CLUSTER_INSTALL_SCRIPT) as f:
-        content = f.read()
-    compressedbuffer=StringIO.StringIO()
-    
-    # gzip the script file
-    with gzip.GzipFile(fileobj=compressedbuffer, mode='wb') as f:
-        f.write(content)
-    b64GzipStream=base64.b64encode(compressedbuffer.getvalue())
-    
-    return clusterYamlFile % (b64GzipStream)
-    
-def convertToOneArmTemplateLine(clusterYamlFile):
-    # remove the \r\n
-    return "\\n".join(clusterYamlFile.split("\n"))
+    with open(installScriptPath) as scriptFile:
+        content = scriptFile.read()
 
-def buildArmTemplateWindowsJumpbox(oneArmYamlFile):
+    with gzip.GzipFile(fileobj=gzipBuffer, mode='wb') as gzipWriter:
+        gzipWriter.write(content)
+
+    b64GzipStream=base64.b64encode(gzipBuffer.getvalue())
+    
+    return clusterYamlFile % (b64GzipStream, installScriptPath)
+    
+# processes a Yaml file to be included properly in ARM template
+def convertToOneArmTemplateLine(clusterYamlFile):
+    # remove the \r\n and include \n in body
+    oneline = "\\n".join(clusterYamlFile.split("\n"))
+    # Escape " to \"
+    return '\\"'.join(oneline.split('"'))
+
+# Loads the base ARM template file and injects the Yaml for the shell scripts into it.
+def processBaseTemplate(baseTemplatePath, jumpboxTemplatePath):
+    # Shell Scripts to load into YAML
+    MESOS_CLUSTER_INSTALL_SCRIPT = "configure-mesos-cluster.sh"
+    LINUX_JUMPBOX_INSTALL_SCRIPT = "configure-ubuntu.sh"
+
+    #String to replace in JSON file
+    CLUSTER_YAML_REPLACE_STRING  = "#clusterCustomDataInstallYaml"
+    JUMPBOX_FRAGMENT_REPLACE_STRING = "#jumpboxFragment"
+    JUMPBOX_FQDN_REPLACE_STRING = "#jumpboxFQDN"
+    JUMPBOX_LINUX_YAML_REPLACE_STRING = "#jumpboxLinuxCustomDataInstallYaml"
+    
     armTemplate = []
-    with open(ARM_TEMPLATE_TEMPLATE) as f:
+    with open(baseTemplatePath) as f:
         armTemplate = f.read()
     
-    # global replacement of the YAML string
-    armTemplate = oneArmYamlFile.join(armTemplate.split(CLUSTER_YAML_REPLACE_STRING))
+    # Generate cluster Yaml file for ARM
+    clusterYamlFile = convertToOneArmTemplateLine(buildYamlFileWithScriptFile(MESOS_CLUSTER_INSTALL_SCRIPT))
+    armTemplate = clusterYamlFile.join(armTemplate.split(CLUSTER_YAML_REPLACE_STRING))
     
-    with open(ARM_WINDOWS_TEMPLATE, "w") as f:
-        f.write(armTemplate)
+    # Generate jumpbox Yaml file for ARM
+    linuxJumpboxYamlFile = convertToOneArmTemplateLine(buildYamlFileWithScriptFile(LINUX_JUMPBOX_INSTALL_SCRIPT))
+    armTemplate = linuxJumpboxYamlFile.join(armTemplate.split(JUMPBOX_LINUX_YAML_REPLACE_STRING))
+    
+    # Add Jumpbox ARM and FQDN Fragment if jumpboxTemplatePath is defined
+    jumpboxTemplate = ""
+    jumpboxFQDN = ""
+    
+    if jumpboxTemplatePath != None :
+        # Add Jumpbox FQDN Fragment if jumpboxTemplatePath is defined
+        jumpboxFQDN = "[reference(concat('Microsoft.Network/publicIPAddresses/', parameters('applicationEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
+        with open(jumpboxTemplatePath) as f:
+            jumpboxTemplate = f.read()
+                
+    armTemplate = jumpboxTemplate.join(armTemplate.split(JUMPBOX_FRAGMENT_REPLACE_STRING))
+    armTemplate = jumpboxFQDN.join(armTemplate.split(JUMPBOX_FQDN_REPLACE_STRING))
+        
+    return armTemplate;
 
 if __name__ == "__main__":
-    # build the yml file for cluster
-    clusterYamlFile = buildClusterYMLFile()
-    
-    # convert yml file to one line
-    oneArmYamlFile = convertToOneArmTemplateLine(clusterYamlFile)
-    
-    # build the yml file for devbox
+    # Input Arm Template Artifacts to be processed in
+    # Note:  These files are not useable ARM templates on thier own.  
+    # They require processing by this script.
+    ARM_INPUT_TEMPLATE_TEMPLATE        = "base-template.json"
+    ARM_INPUT_PARAMETER_TEMPLATE       = "base-template.parameters.json"
+    ARM_INPUT_WINDOWS_JUMPBOX_TEMPLATE = "fragment-windows-jumpbox.json"
+    ARM_INPUT_LINUX_JUMPBOX_TEMPLATE   = "fragment-linux-jumpbox.json"
+
+    # Output ARM Template Files.  WIll Also Output name.parameters.json for each
+    ARM_OUTPUT_TEMPLATE                    = "mesos-cluster.json"
+    ARM_OUTPUT_TEMPLATE_WINDOWS_JUMPBOX    = "mesos-cluster-with-windows-jumpbox.json"
+    ARM_OUTPUT_TEMPLATE_LINUX_JUMPBOX      = "mesos-cluster-with-linux-jumpbox.json"
+   
     # build the ARM template for jumpboxless
+    with open(ARM_OUTPUT_TEMPLATE, "w") as armTemplate:
+        clusterTemplate = processBaseTemplate(ARM_INPUT_TEMPLATE_TEMPLATE, None)
+        armTemplate.write(clusterTemplate)
+        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, ".parameters.json".join(ARM_OUTPUT_TEMPLATE.split(".json")) )
+        
     # build the ARM template for linux jumpbox
+    with open(ARM_OUTPUT_TEMPLATE_LINUX_JUMPBOX, "w") as armTemplate:
+        clusterTemplate = processBaseTemplate(ARM_INPUT_TEMPLATE_TEMPLATE, ARM_INPUT_LINUX_JUMPBOX_TEMPLATE )
+        armTemplate.write(clusterTemplate)
+        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, ".parameters.json".join(ARM_OUTPUT_TEMPLATE_LINUX_JUMPBOX.split(".json")) )
+    
     # build the ARM template for windows jumpbox
-    buildArmTemplateWindowsJumpbox(oneArmYamlFile)
-    
-    
+    with open(ARM_OUTPUT_TEMPLATE_WINDOWS_JUMPBOX, "w") as armTemplate:
+        clusterTemplate = processBaseTemplate(ARM_INPUT_TEMPLATE_TEMPLATE, ARM_INPUT_WINDOWS_JUMPBOX_TEMPLATE)
+        armTemplate.write(clusterTemplate)
+        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, ".parameters.json".join(ARM_OUTPUT_TEMPLATE_WINDOWS_JUMPBOX.split(".json")) )
