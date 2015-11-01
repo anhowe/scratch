@@ -23,9 +23,9 @@ SWARM_VERSION="1.0.0-rc2"
 
 MASTERCOUNT=${1}
 MASTERPREFIX=${2}
-SWARMENABLED=${3}
-MARATHONENABLED=${4}
-CHRONOSENABLED=${5}
+SWARMENABLED=`echo ${3} | awk '{print tolower($0)}'`
+MARATHONENABLED=`echo ${4} | awk '{print tolower($0)}'`
+CHRONOSENABLED=`echo ${5} | awk '{print tolower($0)}'`
 ACCOUNTNAME=${6}
 set +x
 ACCOUNTKEY=${7}
