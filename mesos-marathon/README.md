@@ -2,9 +2,17 @@
 
 This Microsoft Azure template creates an Apache Mesos cluster with Marathon, and Swarm on a configurable number of machines.
 
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fazuredeploy.json" target="_blank">
+Portal Launch Button|Mesos cluster Type
+--- | ---
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fazuredeploy.nojb.json" target="_blank">
     <img src="http://azuredeploy.net/deploybutton.png"/>
-</a>
+</a>|no jumpbox
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fazuredeploy.winjb.json" target="_blank">
+    <img src="http://azuredeploy.net/deploybutton.png"/>
+</a>|windows jumpbox
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fazuredeploy.linuxjb.json" target="_blank">
+    <img src="http://azuredeploy.net/deploybutton.png"/>
+</a>|linux jumpbox
 
 Once your cluster has been created you will have a resource group containing 3 parts:
 
