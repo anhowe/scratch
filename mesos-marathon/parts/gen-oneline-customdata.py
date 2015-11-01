@@ -12,10 +12,10 @@ write_files:
 %s
 """
     writeFileBlock=""" -  encoding: gzip
-        content: !!binary |
-            %s
-        path: /opt/azure/%s
-        permissions: "0744"
+    content: !!binary |
+        %s
+    path: /opt/azure/%s
+    permissions: "0744"
 """
     filelines=""
     for encodeFile in files:
