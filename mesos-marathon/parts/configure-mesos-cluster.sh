@@ -23,26 +23,30 @@ SWARM_VERSION="1.0.0-rc2"
 
 MASTERCOUNT=${1}
 MASTERPREFIX=${2}
-SWARMENABLED=`echo ${3} | awk '{print tolower($0)}'`
-MARATHONENABLED=`echo ${4} | awk '{print tolower($0)}'`
-CHRONOSENABLED=`echo ${5} | awk '{print tolower($0)}'`
-ACCOUNTNAME=${6}
+MASTERFIRSTADDR=${3}
+SWARMENABLED=`echo ${4} | awk '{print tolower($0)}'`
+MARATHONENABLED=`echo ${5} | awk '{print tolower($0)}'`
+CHRONOSENABLED=`echo ${6} | awk '{print tolower($0)}'`
+ACCOUNTNAME=${7}
 set +x
-ACCOUNTKEY=${7}
+ACCOUNTKEY=${8}
 set -x
-AZUREUSER=${8}
-SSHKEY=${9}
+AZUREUSER=${9}
+SSHKEY=${10}
 HOMEDIR="/home/$AZUREUSER"
 VMNAME=`hostname`
 VMNUMBER=`echo $VMNAME | sed 's/.*[^0-9]\([0-9]\+\)*$/\1/'`
 VMPREFIX=`echo $VMNAME | sed 's/\(.*[^0-9]\)*[0-9]\+$/\1/'`
+BASESUBNET="10.0.0."
 
 echo "Master Count: $MASTERCOUNT"
 echo "Master Prefix: $MASTERPREFIX"
+echo "Master First Addr: $MASTERFIRSTADDR"
 echo "vmname: $VMNAME"
 echo "VMNUMBER: $VMNUMBER, VMPREFIX: $VMPREFIX"
 echo "SWARMENABLED: $SWARMENABLED, MARATHONENABLED: $MARATHONENABLED, CHRONOSENABLED: $CHRONOSENABLED"
 echo "ACCOUNTNAME: $ACCOUNTNAME"
+echo "BASESUBNET: $BASESUBNET"
 
 ###################
 # setup ssh access
@@ -162,14 +166,15 @@ fi
 zkhosts()
 {
   zkhosts=""
-  for i in `seq 1 $MASTERCOUNT` ;
+  for i in `seq 0 $((MASTERCOUNT-1))` ;
   do
-    if [ "$i" -gt "1" ]
+    if [ "$i" -gt "0" ]
     then
       zkhosts="${zkhosts},"
     fi
 
-    IPADDR=`getent hosts ${MASTERPREFIX}${i} | awk '{ print $1 }'`
+    MASTEROCTET=`expr $MASTERFIRSTADDR + $i`
+    IPADDR="${BASESUBNET}${MASTEROCTET}"
     zkhosts="${zkhosts}${IPADDR}:2181"
     # due to mesos team experience ip addresses are chosen over dns names
     #zkhosts="${zkhosts}${MASTERPREFIX}${i}:2181"
@@ -198,7 +203,7 @@ echo "$HOSTADDR $VMNAME" | sudo tee -a /etc/hosts
 echo "Installing and configuring docker and swarm"
 
 time wget -qO- https://get.docker.com | sh
-
+sudo usermod -aG docker $AZUREUSER
 # Start Docker and listen on :2375 (no auth, but in vnet)
 echo 'DOCKER_OPTS="-H unix:///var/run/docker.sock -H 0.0.0.0:2375"' | sudo tee /etc/default/docker
 # the following insecure registry is for OMS
@@ -266,9 +271,10 @@ echo $zkmesosconfig | sudo tee /etc/mesos/zk
 
 if ismaster ; then
   echo $VMNUMBER | sudo tee /etc/zookeeper/conf/myid
-  for i in `seq 1 $MASTERCOUNT` ;
+  for i in `seq 0 $((MASTERCOUNT-1))` ;
   do
-    IPADDR=`getent hosts ${MASTERPREFIX}${i} | awk '{ print $1 }'`
+    MASTEROCTET=`expr $MASTERFIRSTADDR + $i`
+    IPADDR="${BASESUBNET}${MASTEROCTET}"
     echo "server.${i}=${IPADDR}:2888:3888" | sudo tee -a /etc/zookeeper/conf/zoo.cfg
     # due to mesos team experience ip addresses are chosen over dns names
     #echo "server.${i}=${MASTERPREFIX}${i}:2888:3888" | sudo tee -a /etc/zookeeper/conf/zoo.cfg
@@ -358,8 +364,11 @@ if isagent ; then
   # Add mesos-dns IP addresses at the top of resolv.conf
   RESOLV_TMP=resolv.conf.temp
   rm -f $RESOLV_TMP
-  for i in `seq $MASTERCOUNT` ; do
-      echo nameserver `getent hosts ${MASTERPREFIX}${i} | awk '{ print $1 }'` >> $RESOLV_TMP
+  for i in `seq 0 $((MASTERCOUNT-1))` ;
+  do
+      MASTEROCTET=`expr $MASTERFIRSTADDR + $i`
+      IPADDR="${BASESUBNET}${MASTEROCTET}"
+      echo nameserver $IPADDR >> $RESOLV_TMP
   done
 
   cat /etc/resolv.conf >> $RESOLV_TMP

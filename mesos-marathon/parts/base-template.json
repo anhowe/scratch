@@ -81,10 +81,19 @@
     }
   },
   "variables": {
-    "adminUsername":"[parameters('adminUsername')]",
-    "marathonEnabled":true,
-    "chronosEnabled":true,
-    "swarmEnabled":false,
+    "adminUsername": "[parameters('adminUsername')]",
+    "adminPassword": "[parameters('adminPassword')]",
+    "jumpboxEndpointDNSNamePrefix": "[tolower(parameters('jumpboxEndpointDNSNamePrefix'))]",
+    "managementEndpointDNSNamePrefix": "[tolower(parameters('managementEndpointDNSNamePrefix'))]",
+    "applicationEndpointDNSNamePrefix": "[tolower(parameters('applicationEndpointDNSNamePrefix'))]",
+    "agentCount": "[parameters('agentCount')]",
+    "masterCount": "[parameters('masterCount')]",
+    "agentVMSize": "[parameters('agentVMSize')]",
+    "sshRSAPublicKey": "[parameters('sshRSAPublicKey')]",
+
+    "marathonEnabled": true,
+    "chronosEnabled": true,
+    "swarmEnabled": true,
     "osImagePublisher": "Canonical",
     "osImageOffer": "UbuntuServer",
     "osImageSKU": "14.04.3-LTS",
@@ -95,8 +104,6 @@
     "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
     "addressPrefix": "10.0.0.0/16",
     "subnetPrefix": "10.0.0.0/18",
-    "nsgName": "node-nsg",
-    "nsgID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName'))]",
     "storageAccountType": "Standard_GRS",
     "storageAccountPrefixes": [
       "0","6","c","i","o","u","1","7","d","j","p","v",
@@ -110,22 +117,27 @@
     "omsStorageAccount": "none",
     "omsStorageAccountKey": "none",
     "postInstallScriptURI": "disabled",
-    "clusterInstallParameters": "[concat(parameters('masterCount'), ' ', variables('masterVMNamePrefix'), ' ',variables('swarmEnabled'), ' ', variables('marathonEnabled'), ' ', variables('chronosEnabled'), ' ', variables('omsStorageAccount'), ' ', variables('omsStorageAccountKey'), ' ', variables('adminUsername'), ' \"', parameters('sshRSAPublicKey'), '\" ',)]",
-    
-    "jumpboxVMNamePrefix": "jumpbox",
+    "singleQuote": "'",
+    "sshQuotedString": "[concat(' ', variables('singleQuote'), variables('sshRSAPublicKey'), variables('singleQuote'), ' ')]",
+    "clusterInstallParameters": "[concat(variables('masterCount'), ' ',variables('masterVMNamePrefix'), ' ',variables('masterFirstAddr'), ' ',variables('swarmEnabled'),' ',variables('marathonEnabled'),' ',variables('chronosEnabled'),' ',variables('omsStorageAccount'),' ',variables('omsStorageAccountKey'),' ', variables('adminUsername'),variables('sshQuotedString'))]",
+
+    "jumpboxNSGName": "jumpbox-nsg",
+    "jumpboxNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('jumpboxNSGName'))]",
     "jumpboxAddr": 4,
-    "jumpboxVMName": "[concat(variables('jumpboxVMNamePrefix'), '1')]",
+    "jumpboxVMName": "jumpbox",
     "jumpboxVMSize":"Standard_D1",
 
-    "jumpboxLinuxInstallParameters": "[concat(parameters('adminUsername'), ' \"', parameters('sshRSAPublicKey'), '\"')]",
-    "jumpboxLinuxCustomScript": "[concat('nohup /bin/bash /opt/azure/containers/configure-ubuntu.sh ',variables('jumpboxLinuxInstallParameters'),' >> /var/log/azure/containers/configure-ubuntu.log 2>&1 &')]"
+    "jumpboxLinuxInstallParameters": "[concat(variables('adminUsername'), variables('sshQuotedString'))]",
+    "jumpboxLinuxCustomScript": "[concat('/usr/bin/nohup /bin/bash -c \"/bin/bash /opt/azure/containers/configure-ubuntu.sh ',variables('jumpboxLinuxInstallParameters'),' >> /var/log/azure/jumpbox-bootstrap.log 2>&1 &\" &')]",
 
     "setBrowserFirstTabDefaultPrefix": "powershell.exe -ExecutionPolicy Unrestricted -command \"New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer' ; New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\BrowserEmulation' ; New-ItemProperty -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\BrowserEmulation' -Name IntranetCompatibilityMode -Value 0 -Type DWord; New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Main' ; New-ItemProperty -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Main' -Name 'Start Page' -Type String -Value http://\"",
-    "setBrowserFirstTabDefaultSuffix": "1:5050",
-    "jumpboxWindowsCustomScript": "[concat(variables('setBrowserFirstTabDefaultPrefix'),variables('masterVMNamePrefix'),variables('setBrowserFirstTabDefaultSuffix'))]"
-    
-    "masterFirstAddr": 5,
+    "setBrowserFirstTabDefaultSuffix": "0:5050",
+    "jumpboxWindowsCustomScript": "[concat(variables('setBrowserFirstTabDefaultPrefix'),variables('masterVMNamePrefix'),variables('setBrowserFirstTabDefaultSuffix'))]",
+
+    "masterNSGName": "master-nsg",
+    "masterNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('masterNSGName'))]",
     "masterVMNamePrefix": "master",
+    "masterFirstAddr": 5,
     "masterAvailabilitySet": "masterAvailabilitySet",
     "masterLbName": "masterlb",
     "masterVMSize":"Standard_A1",
@@ -133,8 +145,10 @@
     "masterLbIPConfigName": "masterLBFrontEnd",
     "masterLbIPConfigID": "[concat(variables('masterLbID'),'/frontendIPConfigurations/', variables('masterLbIPConfigName'))]",
     "masterLbBackendPoolName": "master-pool",
-    "masterCustomScript": "[concat('/bin/bash /opt/azure/containers/configure-mesos-cluster.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/containers/configure-mesos-cluster.log 2>&1')]",
-    
+    "masterCustomScript": "[concat('/bin/bash -c \"/bin/bash /opt/azure/containers/configure-mesos-cluster.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/cluster-bootstrap.log 2>&1\"')]",
+
+    "agentNSGName": "agent-nsg",
+    "agentNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('agentNSGName'))]",
     "agentFirstAddr": 20,
     "agentVMNamePrefix": "agent",
     "agentAvailabilitySet": "agentAvailabilitySet",
@@ -143,9 +157,9 @@
     "appNodesLbIPConfigName": "NodesAppLBFrontEnd",
     "appNodesLbIPConfigID": "[concat(variables('appNodesLbID'),'/frontendIPConfigurations/', variables('appNodesLbIPConfigName'))]",
     "appNodesLbBackendPoolName": "node-app-pool",
-    "agentStorageAccountsCount": "[add(div(parameters('agentCount'), variables('vmsPerStorageAccount')), mod(add(mod(parameters('agentCount'), variables('vmsPerStorageAccount')),2), add(mod(parameters('agentCount'), variables('vmsPerStorageAccount')),1)))]",
+    "agentStorageAccountsCount": "[add(div(variables('agentCount'), variables('vmsPerStorageAccount')), mod(add(mod(variables('agentCount'), variables('vmsPerStorageAccount')),2), add(mod(variables('agentCount'), variables('vmsPerStorageAccount')),1)))]",
     "agentsPerIPv4Octet": 200,
-    "agentCustomScript": "[concat('nohup /bin/bash /opt/azure/containers/configure-mesos-cluster.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/configure-mesos-cluster.log 2>&1 &')]"
+    "agentCustomScript": "[concat('/usr/bin/nohup /bin/bash -c \"/bin/bash /opt/azure/containers/configure-mesos-cluster.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/cluster-bootstrap.log 2>&1 &\" &')]"
   },
   "resources": [
 #jumpboxFragment
@@ -160,78 +174,9 @@
     },
     {
       "apiVersion": "2015-06-15",
-      "type": "Microsoft.Network/networkSecurityGroups",
-      "name": "[variables('nsgName')]",
-      "location": "[resourceGroup().location]",
-      "properties": {
-        "securityRules": [
-          {
-            "name": "ssh",
-            "properties": {
-              "description": "SSH",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "22",
-              "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
-              "access": "Allow",
-              "priority": 200,
-              "direction": "Inbound"
-            }
-          },
-          {
-            "name": "http",
-            "properties": {
-              "description": "HTTP",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "80",
-              "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
-              "access": "Allow",
-              "priority": 210,
-              "direction": "Inbound"
-            }
-          },
-          {
-            "name": "https",
-            "properties": {
-              "description": "HTTP",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "443",
-              "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
-              "access": "Allow",
-              "priority": 220,
-              "direction": "Inbound"
-            }
-          },
-          {
-            "name": "rdp",
-            "properties": {
-              "description": "RDP",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "3389",
-              "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
-              "access": "Allow",
-              "priority": 300,
-              "direction": "Inbound"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/virtualNetworks",
       "name": "[variables('virtualNetworkName')]",
       "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "[variables('nsgID')]"
-      ],
       "properties": {
         "addressSpace": {
           "addressPrefixes": [
@@ -242,10 +187,7 @@
           {
             "name": "[variables('subnetName')]",
             "properties": {
-              "addressPrefix": "[variables('subnetPrefix')]",
-              "networkSecurityGroup": {
-                "id": "[variables('nsgID')]"
-              }
+              "addressPrefix": "[variables('subnetPrefix')]"
             }
           }
         ]
@@ -261,12 +203,12 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
-      "name": "[parameters('managementEndpointDNSNamePrefix')]",
+      "name": "[variables('managementEndpointDNSNamePrefix')]",
       "location": "[resourceGroup().location]",
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
         "dnsSettings": {
-          "domainNameLabel": "[parameters('managementEndpointDNSNamePrefix')]"
+          "domainNameLabel": "[variables('managementEndpointDNSNamePrefix')]"
         }
       }
     },
@@ -276,7 +218,7 @@
       "type": "Microsoft.Network/loadBalancers",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/publicIPAddresses/', parameters('managementEndpointDNSNamePrefix'))]"
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('managementEndpointDNSNamePrefix'))]"
       ],
       "properties": {
         "frontendIPConfigurations": [
@@ -284,7 +226,7 @@
             "name": "[variables('masterLbIPConfigName')]",
             "properties": {
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('managementEndpointDNSNamePrefix'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('managementEndpointDNSNamePrefix'))]"
               }
             }
           }
@@ -299,11 +241,11 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/loadBalancers/inboundNatRules",
-      "name": "[concat(variables('masterLbName'), '/', 'SSH-', variables('masterVMNamePrefix'), copyIndex(1))]",
+      "name": "[concat(variables('masterLbName'), '/', 'SSH-', variables('masterVMNamePrefix'), copyIndex())]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "masterLbLoopNode",
-        "count": "[parameters('masterCount')]"
+        "count": "[variables('masterCount')]"
       },
       "dependsOn": [
         "[variables('masterLbID')]"
@@ -320,19 +262,47 @@
     },
     {
       "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('masterNSGName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "ssh",
+            "properties": {
+              "description": "Allow SSH",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 200,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkInterfaces",
-      "name": "[concat(variables('masterVMNamePrefix'), copyIndex(1), '-nic')]",
+      "name": "[concat(variables('masterVMNamePrefix'), copyIndex(), '-nic')]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "nicLoopNode",
-        "count": "[parameters('masterCount')]"
+        "count": "[variables('masterCount')]"
       },
       "dependsOn": [
         "[variables('masterLbID')]",
         "[variables('vnetID')]",
-        "[concat(variables('masterLbID'),'/inboundNatRules/SSH-',variables('masterVMNamePrefix'),copyIndex(1))]"
+        "[concat(variables('masterLbID'),'/inboundNatRules/SSH-',variables('masterVMNamePrefix'),copyIndex())]",
+        "[variables('masterNSGID')]"
       ],
       "properties": {
+        "networkSecurityGroup": {
+          "id": "[variables('masterNSGID')]"
+        },
         "ipConfigurations": [
           {
             "name": "ipConfigNode",
@@ -349,7 +319,7 @@
               ],
               "loadBalancerInboundNatRules": [
                 {
-                  "id": "[concat(variables('masterLbID'),'/inboundNatRules/SSH-',variables('masterVMNamePrefix'),copyIndex(1))]"
+                  "id": "[concat(variables('masterLbID'),'/inboundNatRules/SSH-',variables('masterVMNamePrefix'),copyIndex())]"
                 }
               ]
             }
@@ -360,14 +330,14 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Compute/virtualMachines",
-      "name": "[concat(variables('masterVMNamePrefix'), copyIndex(1))]",
+      "name": "[concat(variables('masterVMNamePrefix'), copyIndex())]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "vmLoopNode",
-        "count": "[parameters('masterCount')]"
+        "count": "[variables('masterCount')]"
       },
       "dependsOn": [
-        "[concat('Microsoft.Network/networkInterfaces/',variables('masterVMNamePrefix'), copyIndex(1), '-nic')]",
+        "[concat('Microsoft.Network/networkInterfaces/',variables('masterVMNamePrefix'), copyIndex(), '-nic')]",
         "[concat('Microsoft.Compute/availabilitySets/',variables('masterAvailabilitySet'))]",
         "[variables('managementStorageAccountName')]"
       ],
@@ -379,9 +349,9 @@
           "vmSize": "[variables('masterVMSize')]"
         },
         "osProfile": {
-          "computername": "[concat(variables('masterVMNamePrefix'), copyIndex(1))]",
+          "computername": "[concat(variables('masterVMNamePrefix'), copyIndex())]",
           "adminUsername": "[variables('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]",
+          "adminPassword": "[variables('adminPassword')]",
           "customData": "[base64('#clusterCustomDataInstallYaml')]"
         },
         "storageProfile": {
@@ -392,9 +362,9 @@
             "version": "[variables('osImageVersion')]"
           },
           "osDisk": {
-            "name": "[concat(variables('masterVMNamePrefix'), copyIndex(1),'-osdisk')]",
+            "name": "[concat(variables('masterVMNamePrefix'), copyIndex(),'-osdisk')]",
             "vhd": {
-              "uri": "[concat('http://', variables('managementStorageAccountName'), '.blob.core.windows.net/vhds/', variables('masterVMNamePrefix'), copyIndex(1), '-osdisk.vhd')]"
+              "uri": "[concat('http://', variables('managementStorageAccountName'), '.blob.core.windows.net/vhds/', variables('masterVMNamePrefix'), copyIndex(), '-osdisk.vhd')]"
             },
             "caching": "ReadWrite",
             "createOption": "FromImage"
@@ -403,7 +373,7 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('masterVMNamePrefix'), copyIndex(1), '-nic'))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('masterVMNamePrefix'), copyIndex(), '-nic'))]"
             }
           ]
         }
@@ -411,15 +381,15 @@
     },
     {
       "type": "Microsoft.Compute/virtualMachines/extensions",
-      "name": "[concat(variables('masterVMNamePrefix'), copyIndex(1), '/configuremaster')]",
+      "name": "[concat(variables('masterVMNamePrefix'), copyIndex(), '/configuremaster')]",
       "apiVersion": "2015-06-15",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "vmLoopNode",
-        "count": "[parameters('masterCount')]"
+        "count": "[variables('masterCount')]"
       },
       "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachines/', variables('masterVMNamePrefix'), copyIndex(1))]"
+        "[concat('Microsoft.Compute/virtualMachines/', variables('masterVMNamePrefix'), copyIndex())]"
       ],
       "properties": {
         "publisher": "Microsoft.OSTCExtensions",
@@ -427,10 +397,10 @@
         "typeHandlerVersion": "1.3",
         "settings": {
           "fileUris": [],
-          "commandToExecute": "variables('masterCustomScript')"
+          "commandToExecute": "[variables('masterCustomScript')]"
         }
       }
-    }
+    },
     {
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[concat(variables('storageAccountPrefixes')[mod(copyIndex(),variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(copyIndex(),variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),copyIndex(1))]",
@@ -454,12 +424,12 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
-      "name": "[parameters('applicationEndpointDNSNamePrefix')]",
+      "name": "[variables('applicationEndpointDNSNamePrefix')]",
       "location": "[resourceGroup().location]",
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
         "dnsSettings": {
-          "domainNameLabel": "[parameters('applicationEndpointDNSNamePrefix')]"
+          "domainNameLabel": "[variables('applicationEndpointDNSNamePrefix')]"
         }
       }
     },
@@ -469,7 +439,7 @@
       "type": "Microsoft.Network/loadBalancers",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/publicIPAddresses/', parameters('applicationEndpointDNSNamePrefix'))]"
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('applicationEndpointDNSNamePrefix'))]"
       ],
       "properties": {
         "frontendIPConfigurations": [
@@ -477,7 +447,7 @@
             "name": "[variables('appNodesLbIPConfigName')]",
             "properties": {
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('applicationEndpointDNSNamePrefix'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('applicationEndpointDNSNamePrefix'))]"
               }
             }
           }
@@ -527,6 +497,26 @@
                 "id": "[concat(variables('appNodesLbID'),'/probes/tcpHTTPSProbe')]"
               }
             }
+          },
+          {
+            "name": "LBRulePort8080",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[variables('appNodesLbIPConfigID')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(variables('appNodesLbID'), '/backendAddressPools/', variables('appNodesLbBackendPoolName'))]"
+              },
+              "protocol": "tcp",
+              "frontendPort": 8080,
+              "backendPort": 8080,
+              "enableFloatingIP": false,
+              "idleTimeoutInMinutes": 5,
+              "loadDistribution": "Default",
+              "probe": {
+                "id": "[concat(variables('appNodesLbID'),'/probes/tcpPort8080Probe')]"
+              }
+            }
           }
         ],
         "probes": [
@@ -547,6 +537,15 @@
               "intervalInSeconds": "5",
               "numberOfProbes": "2"
             }
+          },
+          {
+            "name": "tcpPort8080Probe",
+            "properties": {
+              "protocol": "tcp",
+              "port": 8080,
+              "intervalInSeconds": "5",
+              "numberOfProbes": "2"
+            }
           }
         ],
         "inboundNatRules": []
@@ -554,18 +553,74 @@
     },
     {
       "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('agentNSGName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "http",
+            "properties": {
+              "description": "Allow HTTP",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "80",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 210,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "https",
+            "properties": {
+              "description": "Allow HTTPS",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "443",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 220,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "port8080",
+            "properties": {
+              "description": "Allow port 8080",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "8080",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 230,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkInterfaces",
-      "name": "[concat(variables('agentVMNamePrefix'), copyIndex(1), '-nic')]",
+      "name": "[concat(variables('agentVMNamePrefix'), copyIndex(), '-nic')]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "nicLoopNode",
-        "count": "[parameters('agentCount')]"
+        "count": "[variables('agentCount')]"
       },
       "dependsOn": [
         "[variables('appNodesLbID')]",
-        "[variables('vnetID')]"
+        "[variables('vnetID')]",
+        "[variables('agentNSGID')]"
       ],
       "properties": {
+        "networkSecurityGroup": {
+          "id": "[variables('agentNSGID')]"
+        },
         "ipConfigurations": [
           {
             "name": "ipConfigNode",
@@ -588,15 +643,15 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Compute/virtualMachines",
-      "name": "[concat(variables('agentVMNamePrefix'), copyIndex(1))]",
+      "name": "[concat(variables('agentVMNamePrefix'), copyIndex())]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "vmLoopNode",
-        "count": "[parameters('agentCount')]"
+        "count": "[variables('agentCount')]"
       },
       "dependsOn": [
         "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountPrefixes')[mod(div(copyIndex(),variables('vmsPerStorageAccount')),variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(div(copyIndex(),variables('vmsPerStorageAccount')),variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),add(1,div(copyIndex(),variables('vmsPerStorageAccount'))))]",
-        "[concat('Microsoft.Network/networkInterfaces/', variables('agentVMNamePrefix'), copyIndex(1), '-nic')]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('agentVMNamePrefix'), copyIndex(), '-nic')]",
         "[concat('Microsoft.Compute/availabilitySets/', variables('agentAvailabilitySet'))]"
       ],
       "properties": {
@@ -604,13 +659,13 @@
           "id": "[resourceId('Microsoft.Compute/availabilitySets',variables('agentAvailabilitySet'))]"
         },
         "hardwareProfile": {
-          "vmSize": "[parameters('agentVMSize')]"
+          "vmSize": "[variables('agentVMSize')]"
         },
         "osProfile": {
-          "computername": "[concat(variables('agentVMNamePrefix'), copyIndex(1))]",
+          "computername": "[concat(variables('agentVMNamePrefix'), copyIndex())]",
           "adminUsername": "[variables('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]",
-          "customData": "[base64(variables('customDataClusterInstallYaml'))]"
+          "adminPassword": "[variables('adminPassword')]",
+          "customData": "[base64('#clusterCustomDataInstallYaml')]"
         },
         "storageProfile": {
           "imageReference": {
@@ -620,9 +675,9 @@
             "version": "[variables('osImageVersion')]"
           },
           "osDisk": {
-            "name": "[concat(variables('agentVMNamePrefix'), copyIndex(1),'-osdisk')]",
+            "name": "[concat(variables('agentVMNamePrefix'), copyIndex(),'-osdisk')]",
             "vhd": {
-              "uri": "[concat('http://',variables('storageAccountPrefixes')[mod(div(copyIndex(),variables('vmsPerStorageAccount')),variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(div(copyIndex(),variables('vmsPerStorageAccount')),variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),add(1,div(copyIndex(),variables('vmsPerStorageAccount'))), '.blob.core.windows.net/vhds/', variables('agentVMNamePrefix'), copyIndex(1), '-osdisk.vhd')]"
+              "uri": "[concat('http://',variables('storageAccountPrefixes')[mod(div(copyIndex(),variables('vmsPerStorageAccount')),variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(div(copyIndex(),variables('vmsPerStorageAccount')),variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),add(1,div(copyIndex(),variables('vmsPerStorageAccount'))), '.blob.core.windows.net/vhds/', variables('agentVMNamePrefix'), copyIndex(), '-osdisk.vhd')]"
             },
             "caching": "ReadWrite",
             "createOption": "FromImage"
@@ -631,7 +686,7 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('agentVMNamePrefix'), copyIndex(1), '-nic'))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('agentVMNamePrefix'), copyIndex(), '-nic'))]"
             }
           ]
         }
@@ -639,15 +694,15 @@
     },
     {
       "type": "Microsoft.Compute/virtualMachines/extensions",
-      "name": "[concat(variables('agentVMNamePrefix'), copyIndex(1), '/configureagent')]",
+      "name": "[concat(variables('agentVMNamePrefix'), copyIndex(), '/configureagent')]",
       "apiVersion": "2015-06-15",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "vmLoopNode",
-        "count": "[parameters('agentCount')]"
+        "count": "[variables('agentCount')]"
       },
       "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachines/', variables('agentVMNamePrefix'), copyIndex(1))]"
+        "[concat('Microsoft.Compute/virtualMachines/', variables('agentVMNamePrefix'), copyIndex())]"
       ],
       "properties": {
         "publisher": "Microsoft.OSTCExtensions",
@@ -655,23 +710,23 @@
         "typeHandlerVersion": "1.3",
         "settings": {
           "fileUris": [],
-          "commandToExecute": "variables('agentCustomScript')"
+          "commandToExecute": "[variables('agentCustomScript')]"
         }
       }
     }
   ],
   "outputs": {
-    "masterFQDN": {
-      "type": "string",
-      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', parameters('managementEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
-    },
-    "applicationFQDN": {
-      "type": "string",
-      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', parameters('applicationEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
-    },
     "jumpboxFQDN": {
       "type": "string",
       "value": "#jumpboxFQDN"
+    },
+    "masterFQDN": {
+      "type": "string",
+      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('managementEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
+    },
+    "applicationFQDN": {
+      "type": "string",
+      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('applicationEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
     }
   }
 }

@@ -4,9 +4,9 @@ This Microsoft Azure template creates an Apache Mesos cluster with Marathon, and
 
 Portal Launch Button|Mesos cluster Type
 --- | ---
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fazuredeploy.nojb.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|no jumpbox
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fazuredeploy.winjb.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|windows jumpbox
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fazuredeploy.linuxjb.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|linux jumpbox
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fmesos-cluster-with-no-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|no jumpbox
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fmesos-cluster-with-windows-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|windows jumpbox
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fmesos-cluster-with-linux-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|linux jumpbox
 
 Once your cluster has been created you will have a resource group containing 3 parts:
 
@@ -68,9 +68,9 @@ Before running the walkthrough ensure you have chosen "true" for "marathonEnable
  2. windows jumpbox - remote desktop to the windows jumpbox
  3. no jumpbox - SSH to port 2211 on your NAT creating a tunnel to port 5050 and port 8080.  Then use the browser of your desktop to browse these ports.
 
-3. browse to the Mesos UI http://master1:5050
- 1. linux jumpbox - in top right corner choose Applications->Internet->Chrome and browse to http://master1:5050
- 2. windows jumpbox - open browser and browse to http://master1:5050
+3. browse to the Mesos UI http://master0:5050
+ 1. linux jumpbox - in top right corner choose Applications->Internet->Chrome and browse to http://master0:5050
+ 2. windows jumpbox - open browser and browse to http://master0:5050
  3. no jumpbox - browse to http://localhost:5050
 
 4. Browse Mesos:
@@ -86,7 +86,7 @@ Before running the walkthrough ensure you have chosen "true" for "marathonEnable
 
  ![Image of Mesos agents on azure](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/mesos-agents.png)
 
-5. browse and explore Marathon UI http://c1master1:8080 (or if using tunnel http://localhost:8080 )
+5. browse and explore Marathon UI http://master0:8080 (or if using tunnel http://localhost:8080 )
 
 6. start a long running job in Marathon
  1. click "+New App"
@@ -100,11 +100,11 @@ Before running the walkthrough ensure you have chosen "true" for "marathonEnable
 
  ![Image of the new application status](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/marathon-newapp-status.png)
 
-8. browse back to Mesos http://c1master1:5050.  You will notice the running tasks and the completed tasks.  Click on the host of the completed tasks and also look at the sandbox.
+8. browse back to Mesos http://master0:5050.  You will notice the running tasks and the completed tasks.  Click on the host of the completed tasks and also look at the sandbox.
 
  ![Image of Mesos completed tasks](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/mesos-completed-tasks.png)
 
-9. All nodes are running docker, so to run a docker app browse back to Marathon http://c1master1:8080, and create an application to run "sudo docker run hello-world".  Once running browse back to Mesos in a similar fashion to the above instructions to see that it has run:
+9. All nodes are running docker, so to run a docker app browse back to Marathon http://master0:8080, and create an application to run "sudo docker run hello-world".  Once running browse back to Mesos in a similar fashion to the above instructions to see that it has run:
 
  ![Image of setting up docker application in Marathon](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/marathon-docker.png)
 
@@ -112,7 +112,7 @@ Before running the walkthrough ensure you have chosen "true" for "marathonEnable
 
 Before running this walkthrough ensure you have created a cluster choosing "true" for the "marathonEnabled" parameter.
 
-1. from the jumpbox browse to http://c1master1:4400/, and verify you see the Marathon Web UI:
+1. from the jumpbox browse to http://master0:4400/, and verify you see the Marathon Web UI:
 
  ![Image of Chronos UI](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/chronos-ui.png)
 
@@ -126,9 +126,9 @@ Before running this walkthrough ensure you have created a cluster choosing "true
 
 3. Click Create
 
-4. Watch the task run, and then browse back to the Mesos UI http://c1master1:5050 and observe the output in the completed task.
+4. Watch the task run, and then browse back to the Mesos UI http://master0:5050 and observe the output in the completed task.
 
-5. All nodes are running docker, so to run a docker app browse back to Chronos http://c1master1:4400, and create an application to run "sudo docker run hello-world".  Once running browse back to Mesos in a similar fashion to the above instructions to verify that it has run:
+5. All nodes are running docker, so to run a docker app browse back to Chronos http://master0:4400, and create an application to run "sudo docker run hello-world".  Once running browse back to Mesos in a similar fashion to the above instructions to verify that it has run:
 
  ![Image of setting up docker application in Marathon](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/chronos-docker.png)
 
@@ -136,7 +136,7 @@ Before running this walkthrough ensure you have created a cluster choosing "true
 
 Before running this walkthrough ensure you have created a cluster choosing "true" for the "swarmEnabled" parameter.
 
-1. from the jumpbox browse to http://c1master1:5050/#/frameworks, and verify Swarm is working:
+1. from the jumpbox browse to http://master0:5050/#/frameworks, and verify Swarm is working:
 
  ![Image of the Swarm framework in Mesos](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/swarm-framework.png)
 
@@ -150,7 +150,7 @@ Before running this walkthrough ensure you have created a cluster choosing "true
 
 6. Run "sudo docker -H tcp://0.0.0.0:2376 ps -a" and see the hello-world that has just run
 
-7. Browse to http://c1master1:5050/, and see the "hello-world" process that has just completed.  Browse to Log:
+7. Browse to http://master0:5050/, and see the "hello-world" process that has just completed.  Browse to Log:
 
  ![Image of docker hello world using Swarm](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/completed-hello-world.png)
 

@@ -1,13 +1,37 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
-      "name": "[parameters('jumpboxEndpointDNSNamePrefix')]",
+      "name": "[variables('jumpboxEndpointDNSNamePrefix')]",
       "location": "[resourceGroup().location]",
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
         "dnsSettings": {
-          "domainNameLabel": "[parameters('jumpboxEndpointDNSNamePrefix')]"
+          "domainNameLabel": "[variables('jumpboxEndpointDNSNamePrefix')]"
         }
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('jumpboxNSGName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "ssh",
+            "properties": {
+              "description": "Allow RDP",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "3389",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 200,
+              "direction": "Inbound"
+            }
+          }
+        ]
       }
     },
     {
@@ -16,10 +40,14 @@
       "name": "[concat(variables('jumpboxVMName'), '-nic')]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/publicIPAddresses/', parameters('jumpboxEndpointDNSNamePrefix'))]",
-        "[variables('vnetID')]"
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('jumpboxEndpointDNSNamePrefix'))]",
+        "[variables('vnetID')]",
+        "[variables('jumpboxNSGID')]"
       ],
       "properties": {
+        "networkSecurityGroup": {
+          "id": "[variables('jumpboxNSGID')]"
+        },
         "ipConfigurations": [
           {
             "name": "ipConfig",
@@ -27,7 +55,7 @@
               "privateIPAllocationMethod": "Static",
               "privateIPAddress": "[concat(split(variables('subnetPrefix'),'0/18')[0], variables('jumpboxAddr'))]",
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('jumpboxEndpointDNSNamePrefix'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('jumpboxEndpointDNSNamePrefix'))]"
               },
               "subnet": {
                 "id": "[variables('subnetRef')]"
@@ -53,7 +81,7 @@
         "osProfile": {
           "computername": "[variables('jumpboxVMName')]",
           "adminUsername": "[variables('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]"
+          "adminPassword": "[variables('adminPassword')]"
         },
         "storageProfile": {
           "imageReference": {
@@ -93,7 +121,7 @@
         "type": "CustomScriptExtension",
         "typeHandlerVersion": "1.4",
         "settings": {
-          "commandToExecute": "variables('jumpboxWindowsCustomScript')"
+          "commandToExecute": "[variables('jumpboxWindowsCustomScript')]"
         }
       }
     },
