@@ -5,8 +5,8 @@ import gzip
 import StringIO
 import sys
 import shutil
+import json
 import argparse
-
 
 # Function reads a script file specified by installScriptPath from disk,
 # and embeds it in a Yaml file as a base-64 enconded string to be
@@ -77,6 +77,17 @@ def processBaseTemplate(baseTemplatePath, jumpboxTemplatePath):
     armTemplate = armTemplate.replace(JUMPBOX_FRAGMENT_REPLACE_STRING, jumpboxTemplate)
     armTemplate = armTemplate.replace(JUMPBOX_FQDN_REPLACE_STRING, jumpboxFQDN)
     armTemplate = armTemplate.replace(JUMPBOX_LINUX_YAML_REPLACE_STRING, linuxJumpboxYamlFile)
+    
+    # Make sure the final string is valid JSON
+    try:
+        json_object = json.loads(armTemplate)
+    except ValueError, e:
+        print e
+        errorFileName = baseTemplatePath + ".err"
+        with open(errorFileName, "w") as f:
+            f.write(armTemplate)
+        print "Invalid armTemplate saved to: " + errorFileName
+        raise
         
     return armTemplate;
 
