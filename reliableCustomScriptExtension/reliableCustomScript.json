@@ -199,7 +199,7 @@
             "typeHandlerVersion": "1.3",
             "settings": {
             "fileUris": [],
-            "commandToExecute": "/bin/bash -c \"/bin/bash /opt/azure/helloworld.sh >> /var/log/azure/install_lap.log 2>&1\""
+            "commandToExecute": "/bin/bash -c \"/bin/bash /opt/azure/helloworld.sh >> /var/log/azure/helloworld.log 2>&1\""
             }
         }
         }

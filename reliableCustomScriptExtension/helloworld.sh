@@ -5,7 +5,7 @@
 #######################################
 ensureAzureNetwork()
 {
-         VMNAME=`hostname`
+  VMNAME=`hostname`
   # ensure the host name is resolvable
   hostResolveHealthy=1
   for i in {1..120}; do
