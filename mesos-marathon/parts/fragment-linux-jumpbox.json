@@ -1,12 +1,11 @@
-    {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
-      "name": "[parameters('jumpboxEndpointDNSNamePrefix')]",
+      "name": "[variables('jumpboxEndpointDNSNamePrefix')]",
       "location": "[resourceGroup().location]",
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
         "dnsSettings": {
-          "domainNameLabel": "[parameters('jumpboxEndpointDNSNamePrefix')]"
+          "domainNameLabel": "[variables('jumpboxEndpointDNSNamePrefix')]"
         }
       }
     },
@@ -16,7 +15,7 @@
       "name": "[concat(variables('jumpboxVMName'), '-nic')]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/publicIPAddresses/', parameters('jumpboxEndpointDNSNamePrefix'))]",
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('jumpboxEndpointDNSNamePrefix'))]",
         "[variables('vnetID')]"
       ],
       "properties": {
@@ -27,7 +26,7 @@
               "privateIPAllocationMethod": "Static",
               "privateIPAddress": "[concat(split(variables('subnetPrefix'),'0/18')[0], variables('jumpboxAddr'))]",
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('jumpboxEndpointDNSNamePrefix'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('jumpboxEndpointDNSNamePrefix'))]"
               },
               "subnet": {
                 "id": "[variables('subnetRef')]"
@@ -53,8 +52,8 @@
         "osProfile": {
           "computername": "[variables('jumpboxVMName')]",
           "adminUsername": "[variables('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]",
-          "customData": "[base64(variables('#jumpboxLinuxCustomDataInstallYaml'))]"
+          "adminPassword": "[variables('adminPassword')]",
+          "customData": "[base64('#jumpboxLinuxCustomDataInstallYaml')]"
         },
         "storageProfile": {
           "imageReference": {
@@ -94,7 +93,7 @@
         "type": "CustomScriptForLinux",
         "typeHandlerVersion": "1.3",
         "settings": {
-          "commandToExecute": "variables('jumpboxLinuxCustomScript')"
+          "commandToExecute": "[variables('jumpboxLinuxCustomScript')]"
         }
       }
     },

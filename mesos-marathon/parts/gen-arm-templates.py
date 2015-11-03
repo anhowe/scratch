@@ -5,6 +5,8 @@ import gzip
 import StringIO
 import sys
 import shutil
+import argparse
+
 
 # Function reads a script file specified by installScriptPath from disk,
 # and embeds it in a Yaml file as a base-64 enconded string to be
@@ -33,10 +35,8 @@ write_files:
     
 # processes a Yaml file to be included properly in ARM template
 def convertToOneArmTemplateLine(clusterYamlFile):
-    # remove the \r\n and include \n in body
-    oneline = "\\n".join(clusterYamlFile.split("\n"))
-    # Escape " to \"
-    return '\\"'.join(oneline.split('"'))
+    # remove the \r\n and include \n in body and escape " to \"
+    return  clusterYamlFile.replace("\n", "\\n").replace('"', '\\"')
 
 # Loads the base ARM template file and injects the Yaml for the shell scripts into it.
 def processBaseTemplate(baseTemplatePath, jumpboxTemplatePath):
@@ -56,28 +56,47 @@ def processBaseTemplate(baseTemplatePath, jumpboxTemplatePath):
     
     # Generate cluster Yaml file for ARM
     clusterYamlFile = convertToOneArmTemplateLine(buildYamlFileWithScriptFile(MESOS_CLUSTER_INSTALL_SCRIPT))
-    armTemplate = clusterYamlFile.join(armTemplate.split(CLUSTER_YAML_REPLACE_STRING))
-    
-    # Generate jumpbox Yaml file for ARM
-    linuxJumpboxYamlFile = convertToOneArmTemplateLine(buildYamlFileWithScriptFile(LINUX_JUMPBOX_INSTALL_SCRIPT))
-    armTemplate = linuxJumpboxYamlFile.join(armTemplate.split(JUMPBOX_LINUX_YAML_REPLACE_STRING))
-    
-    # Add Jumpbox ARM and FQDN Fragment if jumpboxTemplatePath is defined
+    armTemplate = armTemplate.replace(CLUSTER_YAML_REPLACE_STRING, clusterYamlFile)
+
+    # Add Jumpbox YAML, ARM and FQDN Fragment if jumpboxTemplatePath is defined
     jumpboxTemplate = ""
     jumpboxFQDN = ""
+    linuxJumpboxYamlFile = ""
     
     if jumpboxTemplatePath != None :
         # Add Jumpbox FQDN Fragment if jumpboxTemplatePath is defined
-        jumpboxFQDN = "[reference(concat('Microsoft.Network/publicIPAddresses/', parameters('applicationEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
+        jumpboxFQDN = "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('jumpboxEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
+        
+        # Generate jumpbox Yaml file for ARM
+        linuxJumpboxYamlFile = convertToOneArmTemplateLine(buildYamlFileWithScriptFile(LINUX_JUMPBOX_INSTALL_SCRIPT))
         with open(jumpboxTemplatePath) as f:
             jumpboxTemplate = f.read()
-                
-    armTemplate = jumpboxTemplate.join(armTemplate.split(JUMPBOX_FRAGMENT_REPLACE_STRING))
-    armTemplate = jumpboxFQDN.join(armTemplate.split(JUMPBOX_FQDN_REPLACE_STRING))
+    
+    # Want these to be replaced with blank strings if jumpboxTemplatePath is None
+
+    armTemplate = armTemplate.replace(JUMPBOX_FRAGMENT_REPLACE_STRING, jumpboxTemplate)
+    armTemplate = armTemplate.replace(JUMPBOX_FQDN_REPLACE_STRING, jumpboxFQDN)
+    armTemplate = armTemplate.replace(JUMPBOX_LINUX_YAML_REPLACE_STRING, linuxJumpboxYamlFile)
         
     return armTemplate;
 
 if __name__ == "__main__":
+    # Parse Arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-o", "--output_directory",  help="Directory to write templates files to.  Default is current directory.")
+    parser.add_argument("-wapf", "--write_parameter_files", help="Write separate parameter file for each template.  Default is false.",
+                        action="store_true" )
+    
+    args = parser.parse_args()
+    
+    if (args.output_directory == None) :
+        args.output_directory = os.getcwd()
+        
+    args.output_directory = os.path.expandvars(os.path.normpath(args.output_directory))
+    
+    if ( os.path.exists(args.output_directory) == False ):
+        os.mkdir(args.output_directory)
+    
     # Input Arm Template Artifacts to be processed in
     # Note:  These files are not useable ARM templates on thier own.  
     # They require processing by this script.
@@ -87,24 +106,27 @@ if __name__ == "__main__":
     ARM_INPUT_LINUX_JUMPBOX_TEMPLATE   = "fragment-linux-jumpbox.json"
 
     # Output ARM Template Files.  WIll Also Output name.parameters.json for each
-    ARM_OUTPUT_TEMPLATE                    = "mesos-cluster.json"
+    ARM_OUTPUT_TEMPLATE                    = "mesos-cluster-with-no-jumpbox.json"
     ARM_OUTPUT_TEMPLATE_WINDOWS_JUMPBOX    = "mesos-cluster-with-windows-jumpbox.json"
     ARM_OUTPUT_TEMPLATE_LINUX_JUMPBOX      = "mesos-cluster-with-linux-jumpbox.json"
-   
+       
     # build the ARM template for jumpboxless
-    with open(ARM_OUTPUT_TEMPLATE, "w") as armTemplate:
+    with open(os.path.join(args.output_directory, ARM_OUTPUT_TEMPLATE), "w") as armTemplate:
         clusterTemplate = processBaseTemplate(ARM_INPUT_TEMPLATE_TEMPLATE, None)
         armTemplate.write(clusterTemplate)
-        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, ".parameters.json".join(ARM_OUTPUT_TEMPLATE.split(".json")) )
         
     # build the ARM template for linux jumpbox
-    with open(ARM_OUTPUT_TEMPLATE_LINUX_JUMPBOX, "w") as armTemplate:
+    with open(os.path.join(args.output_directory,ARM_OUTPUT_TEMPLATE_LINUX_JUMPBOX), "w") as armTemplate:
         clusterTemplate = processBaseTemplate(ARM_INPUT_TEMPLATE_TEMPLATE, ARM_INPUT_LINUX_JUMPBOX_TEMPLATE )
         armTemplate.write(clusterTemplate)
-        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, ".parameters.json".join(ARM_OUTPUT_TEMPLATE_LINUX_JUMPBOX.split(".json")) )
     
     # build the ARM template for windows jumpbox
-    with open(ARM_OUTPUT_TEMPLATE_WINDOWS_JUMPBOX, "w") as armTemplate:
+    with open(os.path.join(args.output_directory, ARM_OUTPUT_TEMPLATE_WINDOWS_JUMPBOX), "w") as armTemplate:
         clusterTemplate = processBaseTemplate(ARM_INPUT_TEMPLATE_TEMPLATE, ARM_INPUT_WINDOWS_JUMPBOX_TEMPLATE)
         armTemplate.write(clusterTemplate)
-        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, ".parameters.json".join(ARM_OUTPUT_TEMPLATE_WINDOWS_JUMPBOX.split(".json")) )
+        
+    # Write parameter files if specified
+    if (args.write_parameter_files == True) :
+        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, ARM_OUTPUT_TEMPLATE.replace(".json", ".parameters.json") )
+        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, ARM_OUTPUT_TEMPLATE_LINUX_JUMPBOX.replace(".json", ".parameters.json") )
+        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, ARM_OUTPUT_TEMPLATE_WINDOWS_JUMPBOX.replace(".json", ".parameters.json") )
