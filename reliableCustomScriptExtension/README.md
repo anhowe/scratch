@@ -12,7 +12,7 @@ The customData is used to write the files instead of the VM having to download t
 
 Here is the procedure for how to implement a reliable script:
 
-1. Write your shell scripts with “ensureAzureNetwork()” at beginning to protect against 3 types of Azure network errors
+Write your shell scripts with “ensureAzureNetwork()” at beginning to protect against 3 types of Azure network errors
 
 ```
 #!/bin/bash
@@ -71,12 +71,12 @@ ensureAzureNetwork
 echo hello world
 ```
 
-2. Encode your shell scripts into a single line using gen-oneline-customdata.py
+Encode your shell scripts into a single line using gen-oneline-customdata.py
 ```
 gen-oneline-customdata.py helloworld.sh
 ```
 
-3. Add the resulting output to the "customData" portion of your VM:
+Add the resulting output to the "customData" portion of your VM:
 ```
 {
     "apiVersion": "2015-06-15",
@@ -141,7 +141,7 @@ gen-oneline-customdata.py helloworld.sh
 }
 ```
 
-4. Then run the following in the custom script extension where "bash -c" is used to ensure a log file can be written:
+Then run the following in the custom script extension where "bash -c" is used to ensure a log file can be written:
 ```
 {
   "type": "Microsoft.Compute/virtualMachines/extensions",
