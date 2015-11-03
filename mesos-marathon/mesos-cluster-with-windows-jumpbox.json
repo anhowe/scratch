@@ -93,7 +93,7 @@
 
     "marathonEnabled": true,
     "chronosEnabled": true,
-    "swarmEnabled": false,
+    "swarmEnabled": true,
     "osImagePublisher": "Canonical",
     "osImageOffer": "UbuntuServer",
     "osImageSKU": "14.04.3-LTS",
@@ -104,8 +104,6 @@
     "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
     "addressPrefix": "10.0.0.0/16",
     "subnetPrefix": "10.0.0.0/18",
-    "nsgName": "node-nsg",
-    "nsgID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName'))]",
     "storageAccountType": "Standard_GRS",
     "storageAccountPrefixes": [
       "0","6","c","i","o","u","1","7","d","j","p","v",
@@ -121,21 +119,25 @@
     "postInstallScriptURI": "disabled",
     "singleQuote": "'",
     "sshQuotedString": "[concat(' ', variables('singleQuote'), variables('sshRSAPublicKey'), variables('singleQuote'), ' ')]",
-    "clusterInstallParameters": "[concat(variables('masterCount'), ' ',variables('masterVMNamePrefix'), ' ',variables('swarmEnabled'),' ',variables('marathonEnabled'),' ',variables('chronosEnabled'),' ',variables('omsStorageAccount'),' ',variables('omsStorageAccountKey'),' ', variables('adminUsername'),variables('sshQuotedString'))]",
+    "clusterInstallParameters": "[concat(variables('masterCount'), ' ',variables('masterVMNamePrefix'), ' ',variables('masterFirstAddr'), ' ',variables('swarmEnabled'),' ',variables('marathonEnabled'),' ',variables('chronosEnabled'),' ',variables('omsStorageAccount'),' ',variables('omsStorageAccountKey'),' ', variables('adminUsername'),variables('sshQuotedString'))]",
 
+    "jumpboxNSGName": "jumpbox-nsg",
+    "jumpboxNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('jumpboxNSGName'))]",
     "jumpboxAddr": 4,
-    "jumpboxVMName": "jumpbox1",
+    "jumpboxVMName": "jumpbox",
     "jumpboxVMSize":"Standard_D1",
 
     "jumpboxLinuxInstallParameters": "[concat(variables('adminUsername'), variables('sshQuotedString'))]",
     "jumpboxLinuxCustomScript": "[concat('/usr/bin/nohup /bin/bash -c \"/bin/bash /opt/azure/containers/configure-ubuntu.sh ',variables('jumpboxLinuxInstallParameters'),' >> /var/log/azure/jumpbox-bootstrap.log 2>&1 &\" &')]",
 
     "setBrowserFirstTabDefaultPrefix": "powershell.exe -ExecutionPolicy Unrestricted -command \"New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer' ; New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\BrowserEmulation' ; New-ItemProperty -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\BrowserEmulation' -Name IntranetCompatibilityMode -Value 0 -Type DWord; New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Main' ; New-ItemProperty -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Main' -Name 'Start Page' -Type String -Value http://\"",
-    "setBrowserFirstTabDefaultSuffix": "1:5050",
+    "setBrowserFirstTabDefaultSuffix": "0:5050",
     "jumpboxWindowsCustomScript": "[concat(variables('setBrowserFirstTabDefaultPrefix'),variables('masterVMNamePrefix'),variables('setBrowserFirstTabDefaultSuffix'))]",
 
-    "masterFirstAddr": 5,
+    "masterNSGName": "master-nsg",
+    "masterNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('masterNSGName'))]",
     "masterVMNamePrefix": "master",
+    "masterFirstAddr": 5,
     "masterAvailabilitySet": "masterAvailabilitySet",
     "masterLbName": "masterlb",
     "masterVMSize":"Standard_A1",
@@ -145,6 +147,8 @@
     "masterLbBackendPoolName": "master-pool",
     "masterCustomScript": "[concat('/bin/bash -c \"/bin/bash /opt/azure/containers/configure-mesos-cluster.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/cluster-bootstrap.log 2>&1\"')]",
 
+    "agentNSGName": "agent-nsg",
+    "agentNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('agentNSGName'))]",
     "agentFirstAddr": 20,
     "agentVMNamePrefix": "agent",
     "agentAvailabilitySet": "agentAvailabilitySet",
@@ -172,14 +176,42 @@
     },
     {
       "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('jumpboxNSGName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "ssh",
+            "properties": {
+              "description": "Allow RDP",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "3389",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 200,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkInterfaces",
       "name": "[concat(variables('jumpboxVMName'), '-nic')]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
         "[concat('Microsoft.Network/publicIPAddresses/', variables('jumpboxEndpointDNSNamePrefix'))]",
-        "[variables('vnetID')]"
+        "[variables('vnetID')]",
+        "[variables('jumpboxNSGID')]"
       ],
       "properties": {
+        "networkSecurityGroup": {
+          "id": "[variables('jumpboxNSGID')]"
+        },
         "ipConfigurations": [
           {
             "name": "ipConfig",
@@ -268,78 +300,9 @@
     },
     {
       "apiVersion": "2015-06-15",
-      "type": "Microsoft.Network/networkSecurityGroups",
-      "name": "[variables('nsgName')]",
-      "location": "[resourceGroup().location]",
-      "properties": {
-        "securityRules": [
-          {
-            "name": "ssh",
-            "properties": {
-              "description": "SSH",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "22",
-              "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
-              "access": "Allow",
-              "priority": 200,
-              "direction": "Inbound"
-            }
-          },
-          {
-            "name": "http",
-            "properties": {
-              "description": "HTTP",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "80",
-              "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
-              "access": "Allow",
-              "priority": 210,
-              "direction": "Inbound"
-            }
-          },
-          {
-            "name": "https",
-            "properties": {
-              "description": "HTTP",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "443",
-              "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
-              "access": "Allow",
-              "priority": 220,
-              "direction": "Inbound"
-            }
-          },
-          {
-            "name": "rdp",
-            "properties": {
-              "description": "RDP",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "3389",
-              "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
-              "access": "Allow",
-              "priority": 300,
-              "direction": "Inbound"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/virtualNetworks",
       "name": "[variables('virtualNetworkName')]",
       "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "[variables('nsgID')]"
-      ],
       "properties": {
         "addressSpace": {
           "addressPrefixes": [
@@ -350,10 +313,7 @@
           {
             "name": "[variables('subnetName')]",
             "properties": {
-              "addressPrefix": "[variables('subnetPrefix')]",
-              "networkSecurityGroup": {
-                "id": "[variables('nsgID')]"
-              }
+              "addressPrefix": "[variables('subnetPrefix')]"
             }
           }
         ]
@@ -407,7 +367,7 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/loadBalancers/inboundNatRules",
-      "name": "[concat(variables('masterLbName'), '/', 'SSH-', variables('masterVMNamePrefix'), copyIndex(1))]",
+      "name": "[concat(variables('masterLbName'), '/', 'SSH-', variables('masterVMNamePrefix'), copyIndex())]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "masterLbLoopNode",
@@ -428,8 +388,32 @@
     },
     {
       "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('masterNSGName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "ssh",
+            "properties": {
+              "description": "Allow SSH",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 200,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkInterfaces",
-      "name": "[concat(variables('masterVMNamePrefix'), copyIndex(1), '-nic')]",
+      "name": "[concat(variables('masterVMNamePrefix'), copyIndex(), '-nic')]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "nicLoopNode",
@@ -438,9 +422,13 @@
       "dependsOn": [
         "[variables('masterLbID')]",
         "[variables('vnetID')]",
-        "[concat(variables('masterLbID'),'/inboundNatRules/SSH-',variables('masterVMNamePrefix'),copyIndex(1))]"
+        "[concat(variables('masterLbID'),'/inboundNatRules/SSH-',variables('masterVMNamePrefix'),copyIndex())]",
+        "[variables('masterNSGID')]"
       ],
       "properties": {
+        "networkSecurityGroup": {
+          "id": "[variables('masterNSGID')]"
+        },
         "ipConfigurations": [
           {
             "name": "ipConfigNode",
@@ -457,7 +445,7 @@
               ],
               "loadBalancerInboundNatRules": [
                 {
-                  "id": "[concat(variables('masterLbID'),'/inboundNatRules/SSH-',variables('masterVMNamePrefix'),copyIndex(1))]"
+                  "id": "[concat(variables('masterLbID'),'/inboundNatRules/SSH-',variables('masterVMNamePrefix'),copyIndex())]"
                 }
               ]
             }
@@ -468,14 +456,14 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Compute/virtualMachines",
-      "name": "[concat(variables('masterVMNamePrefix'), copyIndex(1))]",
+      "name": "[concat(variables('masterVMNamePrefix'), copyIndex())]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "vmLoopNode",
         "count": "[variables('masterCount')]"
       },
       "dependsOn": [
-        "[concat('Microsoft.Network/networkInterfaces/',variables('masterVMNamePrefix'), copyIndex(1), '-nic')]",
+        "[concat('Microsoft.Network/networkInterfaces/',variables('masterVMNamePrefix'), copyIndex(), '-nic')]",
         "[concat('Microsoft.Compute/availabilitySets/',variables('masterAvailabilitySet'))]",
         "[variables('managementStorageAccountName')]"
       ],
@@ -487,10 +475,10 @@
           "vmSize": "[variables('masterVMSize')]"
         },
         "osProfile": {
-          "computername": "[concat(variables('masterVMNamePrefix'), copyIndex(1))]",
+          "computername": "[concat(variables('masterVMNamePrefix'), copyIndex())]",
           "adminUsername": "[variables('adminUsername')]",
           "adminPassword": "[variables('adminPassword')]",
-          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-mesos-cluster.sh\n    permissions: \"0744\"\n')]"
+          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        H4sIAHw9OFYC/+0aaVPjRva7fsWLcAWYWJIPmAGmnC0GTKBmwJQNs7sZJoOQ2lhjWVLUkrnW/31fXzps2UA2qcqHTVUGq/td/e7X0toP1o0XWDc2HWna2h//T1uDgzAYerdpTOCU0JBCLyDwIbzX2N7FyKPgBTSxfZ9CMiIwDH0/vPOCW3DCSRQGJEgoAhrwGIZjQqKYP0w4pYlNEyIX7NhORmFQ2LVvEfd/kl2jJAHjXtOIMwpBRynjhEkm6Dt+ytijnOJ8duKFga65dkK0CNkj3uCf+/3Tb5+7/cFJ76yjN82G2TBip6Vr80o6R/knBMnRuS3tdH9w0e0f9C7PLjq1p+ZMLpz3u0cn/8KVllo5OukPLvYPD/u42J4J3t2z/Q+fuoeda36C2tPWDP4D9t0Y1p+i2AsSSELUNok3ao3N2fo1UurvXxz3zubxtp/BOzju9856g3m0t8+g7R/wc53tn3ZR6HczrvCf7tX6x+6/cXlnpuyw/+tlv3s56LIT7uIJB8cCotmYace90+7hSb+jW6NwQqxaBqtrn085g+tRSJMAtXzNVi5PPyAdKaiAQFkpcWGdWuabL781jN2vVxtf+J+frjbf1KyrprXOcKXql+BebWTYm28kusL9sD/oDi4/nHUv0BkazBtMXXnXKXdmjJY0SPagVjC7XoY4j8nQu89AhDRzMEdeTBPYd904g8vcQ4FOJ0wZe+oEalnpRmzwn3VQh+aLZY5FP8Pt4mMd5vyJC1NaqUPZdRCivKDYFFwFYQpPCiDXLe7nD3pl+sKIQ59KI6B0BLbjEEorwZiPMa+qSfeyTETQ9i8vjo9OPqHPim3LTjH3xN4jcb+NyQPVvCF8Aekfwktz//jtagNpGDG14WrTfCM8AzodzC9iWYev8J7lwkAD4JR+AMMFyau4CUBTNwTDAyOF3ONhMna9WCGsgHNGk9CFd41GAXboaQW2BMHlYV/COAlTZ5SjPMv6LWNdgEbmAPNqq+ZECBh2AZn4lChkPQhhavueC2gNwIRs6xo717L6NJmEARylgcMy+BJHIAHFErb/iP+ckeQujMcbm9oTclwDscWrF0sxwMIKsK7FWCb8qX3jM8HYTp8vkGNi+8noodNkJw5j8LACwlPTNJutxuw9uCHXGyclY5MvcJvU/oFG+R0a8JWvZfZgcqj8BiObwg0hAVJPA5cVKCxbKZGAFZI05JbQXvkg4hSE6hLmJib2mP/m1kID+1iWgR3GxXKtnKe2yAYMrPxC8kxuwTHn5oaEQhAmim0d7JtQVF3ZJgg5yL2XcJ7CX0tGCIR9gP1DcVM+r1B7rvW7W1ZqepZLplaQ+j6MkiTas1gzdGtiR/KnWmJOsEUrqJOgM40E0HNWaMybocxjuQnm2DETSJbLTOANRecjHiKwc8O0VCwvBgcCOnagzPsi68wFBVes4f3dLfFXGAI1V4gNrnQs8Vi8/riNZhWZDZsp2UleFxR+rWkeFS03yNzHT6aXGxFeyvIuoXzEGItuHADTr0zY2VpTyYNEMz5ZxVG64RpxeXq1Zf8vcrtHeb+fC7ZIo8Rqnn2jxJ7TWs09EAOG4P44Zoqikrt86uh60ZmvKXfS2sZGobczmpub1/CeO0vu0XrN08G4TUBv6ItenZGvPcmfs7quPJD/FQx6BxfYaF6T+yheaALhJ6ihRRnwyTk3NVLLu6ZZ7alAYyaoV/CtPQns2V6rudMUYGvgphjwoRyTEmJP0OMiEnskcIpOi5nextSAuqUYl+EUbeUGlNcBKihVcix6Gz56OW8Zb6KBkAhoUbSOiAJpngjXsYNGqhxLMaltyF+bfFGg0CTu6I9jrAC5CPhTkuCKUewyBMZy6TSsYpcSf8i84vBssAxYNrY1FY1Zp666ItkEWSRxLHFYrYLjiUgIcBg6YzYtL2EjwVgKsUWC5FMte3Y5Jl+md3Y8wZ468TAniGL5e8/gVZKiknDBFNCsWDI5RxoXNaUkZh2fYf+iyOXdHAo5YLO1FJEz8j0MXvSKAPZa7XfbsIE9HWuz63CTJkxxU0ySm0L29cPewcdu/1vv/GLQ0Y1jSAMckCzLmtqxFaeBJUWi+AdwW0xeDU5YXy9qk6vSJUM79ROJhcKV7yUwwRKH1bSY3KKQ8QNLByzKe6eDKnlqhScwDIVuZOjN9juz2d42d9vmblkcZdw5ifg+KnTqOURpE/2KqVA1qkKTiy2qnSiEvJLxyGFrS2twO6/AnLciEQzDP7UMl8UoV+HDebFVAS5KFFHU2WtbpBLX5YU5F6BQk/VyFZUxplXOmsw/ypEn+BeGWfihw6aXgLC0L/nLOxGA7vngon9y9ktHPxT+0A3cKPSChJ7HYRI6od/hcfh+33HYLcIZKrxTeyqQn6mtj+Qh38E5a6ZnTgAYMOim0p86tn9nP1A2gBbd1JpQAc1r4LSt2uTak0hRMxG0mLeV0JyDvMepnsUKqYpfFGqVN3LM2HaUGGyys90pSsombowFlDz7ZaY3eMiU5yB2FGcK3e23ze3mhyPt8AQF6mG29+nNt5j4xKasu6EYd0kM61/20ghr1d7Xdfab31bh703toHfYFfdUZUSHyiSku+RGqSEmWCBMXv+iEYmJ6YWoGsF5BrUnRWyGLYwX6AsZCA9o0TCNHUJNlghN1yoQYysiAQttuK7BNMKZekmIGcV4gCiy98KIBN/dsRFb+FTEQGieuh8gjfh9ZeWe7CRBkdkxvmPaQsd3fXZfUtljVRIyDMwmDjEeSHbZC/l51Oj+OtRlA33FtfOvYfgRI7+i9hUc63HMyYqyx3sB8RN0vq5LK9dKcAuG43vW41hb0cVm12oL2PKKm8QWI29NHjz39Q3kX9P7yRtwEV2s6eoUWr+dnZ29Nv5T2ZjMHQofTWd4+2d3ilXyVTSKf0xSXi1W+tsLXnvIm1nW2xyxu35xO/FyipUO9XsaxumkbGfuFmBBC+3cvM68ToBWe6wh6FoCRivN2asxvKgIvRJUQSmJ1oVeDuRrFOz0Tj0nDmk4TIBPo+ur6cn3L2L6KygHfvxRTqWlm2YxmCZxSkoXrKo4Zy+QZEMh7lCNSDKWu9wzFIgTrTjlS/EwWVSAWvLVFhtE1EZVapJb+mZhDinDL+qwxOdxLPtDdk2ZKYHF5ND2fB5piU3HlK2EqLKYD8CYiycT4npYOvwHxbrxDCtF8BtL9GGaaCpshzYWgGeQnRFxxrzZ+XsG4hrOLneBH9ouJ1wqVQbmqkW3Smls+aFj+9YCEJ+rspHKS0bpDWtlCj1AjmPJToTicCAEsKYNs2U2chBDLBg426X3hj1x326Zye2j4oZtHjzeT4fwUoTJdCVo5dFKh+x3B71Pn9nrNwfnEW5tMRabzNboCbfYy4jsLho7bM3QebA1h+bcC8Vai71HzK5o+LhzhQP7lb7H/6ICm613fN5r8nsCIciVXueAMRki59GAIGOXMqSm2EgSv/DkhqxPEzRL+FEYJ2x5uy3RhGsXUMUcS2KBLCdPhU6QrC924jBMzExJ5pyU/M4g5gJ+udJrSoFX+lccPXT4OTeI+Z0Wkth0buMZ2wjkXJsY6U7sRey1iDo5K7xX7KWaHNm/YxIGe8iCgY3Jgwc87sT4DN/DGwobsbPJMoccP+W1prpiyOotEmPlnQ8cxDXlVwFY8ylQbxJhYsJf2NxSjyWpnB77QsBOvBvP95IHuMNAQUqXvPWvwyG58eygDgc4oPQGdc6xf9z9BC6burE9hwEhe4gge/Y04vwLowNmnnB8g/9ba7gVuHbsGp7rhROqcVBWsmgS4rjgQuxA//LsU/dz91PnS6u9tf1VQ6tF9h2qk9wT5xnF4xwhsvUL7FM2d7GwlMzNQ4nHlhd4iQJRtwY5Z3FtwJKq9posur/664rKa9Q19kZajZls9MegIuy1aZy5nNisi557Sf2nvj0lVgmfZtRZrPDBqfxdxvI7YcGXBTLd+9I0Ws16q228263vNI2t9u5ufWur0TS2G1u79e3GdsvYabC9Bu62W41G4+tqITNpijfOlRyReENweC1dfrvxfMMmEF/SrwnIrF3LVJv7zMl5sTNPeORjIEA4hEIizzL9t4vT805hw8QUweSIcTofQi0Hev2088p55xUTj7RToQrVBC78/POczHw+wL+V1WwBGqO0sLCA8Lr+RoWnk4Uni3aIUxzR1Z0gsE4kikOH2+u1tOXtxkZMNuc+gGIZdag6qJyBXt0hldJPlvqze8vK/CRpKIjsddNLGvt5gqq1VcR42EiKc5+cvIigM4rDIKRFesVvECZ2kNr+QoQx6+SDpsn64dhzyXL9sALzEppFhS0lO6dVpJwNT5VvvMoGF4lBrybK9zJlCHRWn32CJR2qCPGCjY7rEqj9Q3+x8goUnjmnEkkeU6Zd5aayaZH+l8mmq2/31qCfBuJ9B5MH9VOoWaz0swQOrfa7t9m7ic2S58sxtPhB1BLPmlO2LJCc9V6t9A2hnkPzy2zshW69KZFvQsUVGq6h4gmkETdVfunNEYu35fym12Vf+Qgmp5iVBt/4B3asHYUrmQgXboOzjYgrQFz24kMb/+6xfyqFl2rMsR1pKHHnM0EHRKPnTOWAb4RRIgBNWXQ6so1eCcvM0+GylO/sNPi/DrT5tyarQrbojvxt90IgJdiQu6z4i2lBhZCAO8KopSOSzcQve8HIb6XnRVr53e1/ASZ25fiyLAAA\n    path: /opt/azure/containers/configure-mesos-cluster.sh\n    permissions: \"0744\"\n')]"
         },
         "storageProfile": {
           "imageReference": {
@@ -500,9 +488,9 @@
             "version": "[variables('osImageVersion')]"
           },
           "osDisk": {
-            "name": "[concat(variables('masterVMNamePrefix'), copyIndex(1),'-osdisk')]",
+            "name": "[concat(variables('masterVMNamePrefix'), copyIndex(),'-osdisk')]",
             "vhd": {
-              "uri": "[concat('http://', variables('managementStorageAccountName'), '.blob.core.windows.net/vhds/', variables('masterVMNamePrefix'), copyIndex(1), '-osdisk.vhd')]"
+              "uri": "[concat('http://', variables('managementStorageAccountName'), '.blob.core.windows.net/vhds/', variables('masterVMNamePrefix'), copyIndex(), '-osdisk.vhd')]"
             },
             "caching": "ReadWrite",
             "createOption": "FromImage"
@@ -511,7 +499,7 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('masterVMNamePrefix'), copyIndex(1), '-nic'))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('masterVMNamePrefix'), copyIndex(), '-nic'))]"
             }
           ]
         }
@@ -519,7 +507,7 @@
     },
     {
       "type": "Microsoft.Compute/virtualMachines/extensions",
-      "name": "[concat(variables('masterVMNamePrefix'), copyIndex(1), '/configuremaster')]",
+      "name": "[concat(variables('masterVMNamePrefix'), copyIndex(), '/configuremaster')]",
       "apiVersion": "2015-06-15",
       "location": "[resourceGroup().location]",
       "copy": {
@@ -527,7 +515,7 @@
         "count": "[variables('masterCount')]"
       },
       "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachines/', variables('masterVMNamePrefix'), copyIndex(1))]"
+        "[concat('Microsoft.Compute/virtualMachines/', variables('masterVMNamePrefix'), copyIndex())]"
       ],
       "properties": {
         "publisher": "Microsoft.OSTCExtensions",
@@ -635,6 +623,26 @@
                 "id": "[concat(variables('appNodesLbID'),'/probes/tcpHTTPSProbe')]"
               }
             }
+          },
+          {
+            "name": "LBRulePort8080",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[variables('appNodesLbIPConfigID')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(variables('appNodesLbID'), '/backendAddressPools/', variables('appNodesLbBackendPoolName'))]"
+              },
+              "protocol": "tcp",
+              "frontendPort": 8080,
+              "backendPort": 8080,
+              "enableFloatingIP": false,
+              "idleTimeoutInMinutes": 5,
+              "loadDistribution": "Default",
+              "probe": {
+                "id": "[concat(variables('appNodesLbID'),'/probes/tcpPort8080Probe')]"
+              }
+            }
           }
         ],
         "probes": [
@@ -655,6 +663,15 @@
               "intervalInSeconds": "5",
               "numberOfProbes": "2"
             }
+          },
+          {
+            "name": "tcpPort8080Probe",
+            "properties": {
+              "protocol": "tcp",
+              "port": 8080,
+              "intervalInSeconds": "5",
+              "numberOfProbes": "2"
+            }
           }
         ],
         "inboundNatRules": []
@@ -662,8 +679,60 @@
     },
     {
       "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('agentNSGName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "http",
+            "properties": {
+              "description": "Allow HTTP",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "80",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 210,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "https",
+            "properties": {
+              "description": "Allow HTTPS",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "443",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 220,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "port8080",
+            "properties": {
+              "description": "Allow port 8080",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "8080",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 230,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkInterfaces",
-      "name": "[concat(variables('agentVMNamePrefix'), copyIndex(1), '-nic')]",
+      "name": "[concat(variables('agentVMNamePrefix'), copyIndex(), '-nic')]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "nicLoopNode",
@@ -671,9 +740,13 @@
       },
       "dependsOn": [
         "[variables('appNodesLbID')]",
-        "[variables('vnetID')]"
+        "[variables('vnetID')]",
+        "[variables('agentNSGID')]"
       ],
       "properties": {
+        "networkSecurityGroup": {
+          "id": "[variables('agentNSGID')]"
+        },
         "ipConfigurations": [
           {
             "name": "ipConfigNode",
@@ -696,7 +769,7 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Compute/virtualMachines",
-      "name": "[concat(variables('agentVMNamePrefix'), copyIndex(1))]",
+      "name": "[concat(variables('agentVMNamePrefix'), copyIndex())]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "vmLoopNode",
@@ -704,7 +777,7 @@
       },
       "dependsOn": [
         "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountPrefixes')[mod(div(copyIndex(),variables('vmsPerStorageAccount')),variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(div(copyIndex(),variables('vmsPerStorageAccount')),variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),add(1,div(copyIndex(),variables('vmsPerStorageAccount'))))]",
-        "[concat('Microsoft.Network/networkInterfaces/', variables('agentVMNamePrefix'), copyIndex(1), '-nic')]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('agentVMNamePrefix'), copyIndex(), '-nic')]",
         "[concat('Microsoft.Compute/availabilitySets/', variables('agentAvailabilitySet'))]"
       ],
       "properties": {
@@ -715,10 +788,10 @@
           "vmSize": "[variables('agentVMSize')]"
         },
         "osProfile": {
-          "computername": "[concat(variables('agentVMNamePrefix'), copyIndex(1))]",
+          "computername": "[concat(variables('agentVMNamePrefix'), copyIndex())]",
           "adminUsername": "[variables('adminUsername')]",
           "adminPassword": "[variables('adminPassword')]",
-          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-mesos-cluster.sh\n    permissions: \"0744\"\n')]"
+          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-mesos-cluster.sh\n    permissions: \"0744\"\n')]"
         },
         "storageProfile": {
           "imageReference": {
@@ -728,9 +801,9 @@
             "version": "[variables('osImageVersion')]"
           },
           "osDisk": {
-            "name": "[concat(variables('agentVMNamePrefix'), copyIndex(1),'-osdisk')]",
+            "name": "[concat(variables('agentVMNamePrefix'), copyIndex(),'-osdisk')]",
             "vhd": {
-              "uri": "[concat('http://',variables('storageAccountPrefixes')[mod(div(copyIndex(),variables('vmsPerStorageAccount')),variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(div(copyIndex(),variables('vmsPerStorageAccount')),variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),add(1,div(copyIndex(),variables('vmsPerStorageAccount'))), '.blob.core.windows.net/vhds/', variables('agentVMNamePrefix'), copyIndex(1), '-osdisk.vhd')]"
+              "uri": "[concat('http://',variables('storageAccountPrefixes')[mod(div(copyIndex(),variables('vmsPerStorageAccount')),variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(div(copyIndex(),variables('vmsPerStorageAccount')),variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),add(1,div(copyIndex(),variables('vmsPerStorageAccount'))), '.blob.core.windows.net/vhds/', variables('agentVMNamePrefix'), copyIndex(), '-osdisk.vhd')]"
             },
             "caching": "ReadWrite",
             "createOption": "FromImage"
@@ -739,7 +812,7 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('agentVMNamePrefix'), copyIndex(1), '-nic'))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('agentVMNamePrefix'), copyIndex(), '-nic'))]"
             }
           ]
         }
@@ -747,7 +820,7 @@
     },
     {
       "type": "Microsoft.Compute/virtualMachines/extensions",
-      "name": "[concat(variables('agentVMNamePrefix'), copyIndex(1), '/configureagent')]",
+      "name": "[concat(variables('agentVMNamePrefix'), copyIndex(), '/configureagent')]",
       "apiVersion": "2015-06-15",
       "location": "[resourceGroup().location]",
       "copy": {
@@ -755,7 +828,7 @@
         "count": "[variables('agentCount')]"
       },
       "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachines/', variables('agentVMNamePrefix'), copyIndex(1))]"
+        "[concat('Microsoft.Compute/virtualMachines/', variables('agentVMNamePrefix'), copyIndex())]"
       ],
       "properties": {
         "publisher": "Microsoft.OSTCExtensions",

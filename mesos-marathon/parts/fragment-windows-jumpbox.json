@@ -12,14 +12,42 @@
     },
     {
       "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('jumpboxNSGName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "ssh",
+            "properties": {
+              "description": "Allow RDP",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "3389",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 200,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkInterfaces",
       "name": "[concat(variables('jumpboxVMName'), '-nic')]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
         "[concat('Microsoft.Network/publicIPAddresses/', variables('jumpboxEndpointDNSNamePrefix'))]",
-        "[variables('vnetID')]"
+        "[variables('vnetID')]",
+        "[variables('jumpboxNSGID')]"
       ],
       "properties": {
+        "networkSecurityGroup": {
+          "id": "[variables('jumpboxNSGID')]"
+        },
         "ipConfigurations": [
           {
             "name": "ipConfig",
