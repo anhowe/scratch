@@ -198,7 +198,7 @@ echo "$HOSTADDR $VMNAME" | sudo tee -a /etc/hosts
 echo "Installing and configuring docker and swarm"
 
 time wget -qO- https://get.docker.com | sh
-
+sudo usermod -aG docker $AZUREUSER
 # Start Docker and listen on :2375 (no auth, but in vnet)
 echo 'DOCKER_OPTS="-H unix:///var/run/docker.sock -H 0.0.0.0:2375"' | sudo tee /etc/default/docker
 # the following insecure registry is for OMS
