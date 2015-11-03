@@ -10,6 +10,8 @@ This demonstrates a Linux VM that uses customData to write files, and then the c
 
 The customData is used to write the files instead of the VM having to download the files.  The custom script extension is used to execute instead of customData to induce the newtwork failure and then the script is run to handle the network failure.  Alternatively if customData is used to execute, the network failure could come during the middle of the script.
 
+**NOTE: The custom script extension should come last in the dependency chain so that no further network changes will happen while the script runs.**
+
 Here is the procedure for how to implement a reliable script:
 
 Write your shell scripts with “ensureAzureNetwork()” at beginning to protect against 3 types of Azure network errors
