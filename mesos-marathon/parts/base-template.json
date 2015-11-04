@@ -93,7 +93,7 @@
 
     "marathonEnabled": true,
     "chronosEnabled": true,
-    "swarmEnabled": true,
+    "swarmEnabled": false,
     "osImagePublisher": "Canonical",
     "osImageOffer": "UbuntuServer",
     "osImageSKU": "14.04.3-LTS",
