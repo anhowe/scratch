@@ -16,7 +16,7 @@ echo "starting mesos cluster configuration"
 date
 ps ax
 
-SWARM_VERSION="1.0.0-rc2"
+SWARM_VERSION="ahmet/swarm:1.0.0-zk-hotfix"
 #############
 # Parameters
 #############
@@ -163,6 +163,19 @@ if isagent ; then
   echo "this node is an agent"
 fi
 
+isomsrequired()
+{
+  if [ $ACCOUNTNAME != "none" ]
+  then
+    return 0
+  else
+    return 1
+  fi
+}
+if isomsrequired ; then
+  echo "this node requires oms"
+fi
+
 zkhosts()
 {
   zkhosts=""
@@ -204,10 +217,16 @@ echo "Installing and configuring docker and swarm"
 
 time wget -qO- https://get.docker.com | sh
 sudo usermod -aG docker $AZUREUSER
-# Start Docker and listen on :2375 (no auth, but in vnet)
-echo 'DOCKER_OPTS="-H unix:///var/run/docker.sock -H 0.0.0.0:2375"' | sudo tee /etc/default/docker
-# the following insecure registry is for OMS
-echo 'DOCKER_OPTS="$DOCKER_OPTS --insecure-registry 137.135.93.9"' | sudo tee -a /etc/default/docker
+if agent ; then
+  # Start Docker and listen on :2375 (no auth, but in vnet)
+  echo 'DOCKER_OPTS="-H unix:///var/run/docker.sock -H 0.0.0.0:2375"' | sudo tee /etc/default/docker
+fi
+
+if isomsrequired ; then
+  # the following insecure registry is for OMS
+  echo 'DOCKER_OPTS="$DOCKER_OPTS --insecure-registry 137.135.93.9"' | sudo tee -a /etc/default/docker
+fi
+
 sudo service docker restart
 
 ensureDocker()
@@ -237,8 +256,7 @@ ensureDocker
 # setup OMS
 ############
 
-if [ $ACCOUNTNAME != "none" ]
-then
+if isomsrequired ; then
   set +x
   EPSTRING="DefaultEndpointsProtocol=https;AccountName=${ACCOUNTNAME};AccountKey=${ACCOUNTKEY}"
   docker run --restart=always -d 137.135.93.9/msdockeragentv3 http://${VMNAME}:2375 "${EPSTRING}"
@@ -410,20 +428,20 @@ ps ax
 
 # Run swarm manager container on port 2376 (no auth)
 if ismaster && [ "$SWARMENABLED" == "true" ] ; then
-  echo "starting docker swarm:$SWARM_VERSION"
+  echo "starting docker swarm version $SWARM_VERSION"
   echo "sleep to give master time to come up"
   sleep 10
-  echo sudo docker run -d -e SWARM_MESOS_USER=root \
+  echo sudo docker run -d --net=host -e SWARM_MESOS_USER=root \
       --restart=always \
-      -p 2376:2375 -p 3375:3375 swarm:$SWARM_VERSION manage \
+      $SWARM_VERSION manage \
       -c mesos-experimental \
-      --cluster-opt mesos.address=0.0.0.0 \
+      --cluster-opt mesos.address=$HOSTADDR \
       --cluster-opt mesos.port=3375 $zkmesosconfig
-  sudo docker run -d -e SWARM_MESOS_USER=root \
+  sudo docker run -d --net=host -e SWARM_MESOS_USER=root \
       --restart=always \
-      -p 2376:2375 -p 3375:3375 swarm:$SWARM_VERSION manage \
+      $SWARM_VERSION manage \
       -c mesos-experimental \
-      --cluster-opt mesos.address=0.0.0.0 \
+      --cluster-opt mesos.address=$HOSTADDR \
       --cluster-opt mesos.port=3375 $zkmesosconfig
   sudo docker ps
   echo "completed starting docker swarm"
