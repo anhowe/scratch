@@ -6,13 +6,13 @@
     "value": "password1234$"
   },
   "jumpboxEndpointDNSNamePrefix": {
-    "value": "mesosscalablejb1101d"
+    "value": "mesosscalablejb1106c"
   },
   "managementEndpointDNSNamePrefix": {
-    "value": "mesosscalablemgmt1101d"
+    "value": "mesosscalablemgmt1106c"
   },
   "applicationEndpointDNSNamePrefix": {
-    "value": "mesosscalableapp1101d"
+    "value": "mesosscalableapp1106c"
   },
   "agentCount": {
     "value": 3

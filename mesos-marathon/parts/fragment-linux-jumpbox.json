@@ -86,9 +86,9 @@
         },
         "storageProfile": {
           "imageReference": {
-            "publisher": "Canonical",
-            "offer": "UbuntuServer",
-            "sku": "14.04.3-LTS",
+            "publisher": "[variables('linuxJumpboxPublisher')]",
+            "offer": "[variables('linuxJumpboxOffer')]",
+            "sku": "[variables('linuxJumpboxSku')]",
             "version": "latest"
           },
           "osDisk": {

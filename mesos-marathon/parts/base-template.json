@@ -37,7 +37,7 @@
       "type": "int",
       "defaultValue": 1,
       "metadata": {
-        "description": "The number of Mesos agents for the cluster.  This value can be from 1 to 200"
+        "description": "The number of Mesos agents for the cluster.  This value can be from 1 to 100"
       },
       "allowedValues": [
         1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,
@@ -78,6 +78,69 @@
       "metadata": {
         "description": "Configure all linux machines with the SSH rsa public key string.  Use 'disabled' to not configure access with SSH rsa public key."
       }
+    },
+    "linuxPublisher": {
+      "type": "string",
+      "defaultValue": "Canonical",
+      "metadata": {
+        "description": "This is the publisher of the image used by the linux cluster"
+      }
+    },
+    "linuxOffer": {
+      "type": "string",
+      "defaultValue": "UbuntuServer",
+      "metadata": {
+        "description": "This is the offer of the image used by the linux cluster"
+      }
+    },
+    "linuxSku": {
+      "type": "string",
+      "defaultValue": "14.04.3-LTS",
+      "metadata": {
+        "description": "This is the linux sku used by the linux cluster"
+      }
+    },
+    "windowsJumpboxPublisher": {
+      "type": "string",
+      "defaultValue": "MicrosoftVisualStudio",
+      "metadata": {
+        "description": "This is the windows publisher used by the windows jumpbox"
+      }
+    },
+    "windowsJumpboxOffer": {
+      "type": "string",
+      "defaultValue": "VisualStudio",
+      "metadata": {
+        "description": "This is the windows offer used by the windows jumpbox"
+      }
+    },
+    "windowsJumpboxSku": {
+      "type": "string",
+      "defaultValue": "VS-2015-Enterprise-AzureSDK-2.7-WS2012R2",
+      "metadata": {
+        "description": "This is the windows sku used by the windows jumpbox"
+      }
+    },
+    "linuxJumpboxPublisher": {
+      "type": "string",
+      "defaultValue": "Canonical",
+      "metadata": {
+        "description": "This is the linux publisher used by the linux jumpbox"
+      }
+    },
+    "linuxJumpboxOffer": {
+      "type": "string",
+      "defaultValue": "UbuntuServer",
+      "metadata": {
+        "description": "This is the linux offer used by the linux jumpbox"
+      }
+    },
+    "linuxJumpboxSku": {
+      "type": "string",
+      "defaultValue": "14.04.3-LTS",
+      "metadata": {
+        "description": "This is the linux sku used by the linux jumpbox"
+      }
     }
   },
   "variables": {
@@ -90,13 +153,22 @@
     "masterCount": "[parameters('masterCount')]",
     "agentVMSize": "[parameters('agentVMSize')]",
     "sshRSAPublicKey": "[parameters('sshRSAPublicKey')]",
+    "linuxPublisher": "[parameters('linuxPublisher')]",
+    "linuxOffer": "[parameters('linuxOffer')]",
+    "linuxSku": "[parameters('linuxSku')]",
+    "windowsJumpboxPublisher": "[parameters('windowsJumpboxPublisher')]",
+    "windowsJumpboxOffer": "[parameters('windowsJumpboxOffer')]",
+    "windowsJumpboxSku": "[parameters('windowsJumpboxSku')]",
+    "linuxJumpboxPublisher": "[parameters('linuxJumpboxPublisher')]",
+    "linuxJumpboxOffer": "[parameters('linuxJumpboxOffer')]",
+    "linuxJumpboxSku": "[parameters('linuxJumpboxSku')]",
 
     "marathonEnabled": true,
     "chronosEnabled": true,
     "swarmEnabled": false,
-    "osImagePublisher": "Canonical",
-    "osImageOffer": "UbuntuServer",
-    "osImageSKU": "14.04.3-LTS",
+    "osImagePublisher": "[variables('linuxPublisher')]",
+    "osImageOffer": "[variables('linuxOffer')]",
+    "osImageSKU": "[variables('linuxSku')]",
     "osImageVersion": "latest",
     "virtualNetworkName": "VNET",
     "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
