@@ -120,27 +120,6 @@
       "metadata": {
         "description": "This is the windows sku used by the windows jumpbox"
       }
-    },
-    "linuxJumpboxPublisher": {
-      "type": "string",
-      "defaultValue": "Canonical",
-      "metadata": {
-        "description": "This is the linux publisher used by the linux jumpbox"
-      }
-    },
-    "linuxJumpboxOffer": {
-      "type": "string",
-      "defaultValue": "UbuntuServer",
-      "metadata": {
-        "description": "This is the linux offer used by the linux jumpbox"
-      }
-    },
-    "linuxJumpboxSku": {
-      "type": "string",
-      "defaultValue": "14.04.3-LTS",
-      "metadata": {
-        "description": "This is the linux sku used by the linux jumpbox"
-      }
     }
   },
   "variables": {
@@ -156,12 +135,6 @@
     "linuxPublisher": "[parameters('linuxPublisher')]",
     "linuxOffer": "[parameters('linuxOffer')]",
     "linuxSku": "[parameters('linuxSku')]",
-    "windowsJumpboxPublisher": "[parameters('windowsJumpboxPublisher')]",
-    "windowsJumpboxOffer": "[parameters('windowsJumpboxOffer')]",
-    "windowsJumpboxSku": "[parameters('windowsJumpboxSku')]",
-    "linuxJumpboxPublisher": "[parameters('linuxJumpboxPublisher')]",
-    "linuxJumpboxOffer": "[parameters('linuxJumpboxOffer')]",
-    "linuxJumpboxSku": "[parameters('linuxJumpboxSku')]",
 
     "vmNameMaster": "swarm-master-",
     "vmNameNode": "swarm-node-",
