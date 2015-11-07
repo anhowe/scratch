@@ -173,7 +173,7 @@
     "jumpboxNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('jumpboxNSGName'))]",
     "jumpboxAddr": 4,
     "jumpboxVMName": "jumpbox",
-    "jumpboxVMSize":"Standard_D1",
+    "jumpboxVMSize":"Standard_A1",
 
     "jumpboxLinuxInstallParameters": "[concat(variables('adminUsername'), variables('sshQuotedString'))]",
     "jumpboxLinuxCustomScript": "[concat('/usr/bin/nohup /bin/bash -c \"/bin/bash /opt/azure/containers/configure-ubuntu.sh ',variables('jumpboxLinuxInstallParameters'),' >> /var/log/azure/jumpbox-bootstrap.log 2>&1 &\" &')]",
