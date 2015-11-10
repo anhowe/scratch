@@ -120,6 +120,14 @@
       "metadata": {
         "description": "This is the windows sku used by the windows jumpbox"
       }
+    },
+    "isValidation": {
+      "type": "int",
+      "defaultValue": 0,
+      "allowedValues": [0,1],
+      "metadata": {
+        "description": "This is testing in the validation region"
+      }
     }
   },
   "variables": {
@@ -138,7 +146,12 @@
     "windowsJumpboxPublisher": "[parameters('windowsJumpboxPublisher')]",
     "windowsJumpboxOffer": "[parameters('windowsJumpboxOffer')]",
     "windowsJumpboxSku": "[parameters('windowsJumpboxSku')]",
-
+    "isValidation": "[parameters('isValidation')]",
+    "storageLocations": [
+      "[resourceGroup().location]",
+      "US East 2 (Stage)"
+    ],
+    "storageLocation": "[variables('storageLocations')[variables('isValidation')]]",
     "marathonEnabled": true,
     "chronosEnabled": true,
     "swarmEnabled": false,
@@ -215,7 +228,7 @@
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[variables('managementStorageAccountName')]",
       "apiVersion": "2015-06-15",
-      "location": "[resourceGroup().location]",
+      "location": "[variables('storageLocation')]",
       "properties": {
         "accountType": "[variables('storageAccountType')]"
       }
@@ -453,7 +466,7 @@
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[concat(variables('storageAccountPrefixes')[mod(copyIndex(),variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(copyIndex(),variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),copyIndex(1))]",
       "apiVersion": "2015-06-15",
-      "location": "[resourceGroup().location]",
+      "location": "[variables('storageLocation')]",
       "copy": {
         "name": "vmLoopNode",
         "count": "[variables('agentStorageAccountsCount')]"
