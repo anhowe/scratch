@@ -100,25 +100,12 @@
         "description": "This is the linux sku used by the linux cluster"
       }
     },
-    "windowsJumpboxPublisher": {
-      "type": "string",
-      "defaultValue": "MicrosoftVisualStudio",
+    "isValidation": {
+      "type": "int",
+      "defaultValue": 0,
+      "allowedValues": [0,1],
       "metadata": {
-        "description": "This is the windows publisher used by the windows jumpbox"
-      }
-    },
-    "windowsJumpboxOffer": {
-      "type": "string",
-      "defaultValue": "VisualStudio",
-      "metadata": {
-        "description": "This is the windows offer used by the windows jumpbox"
-      }
-    },
-    "windowsJumpboxSku": {
-      "type": "string",
-      "defaultValue": "VS-2015-Enterprise-AzureSDK-2.7-WS2012R2",
-      "metadata": {
-        "description": "This is the windows sku used by the windows jumpbox"
+        "description": "This is testing in the validation region"
       }
     }
   },
@@ -135,6 +122,13 @@
     "linuxPublisher": "[parameters('linuxPublisher')]",
     "linuxOffer": "[parameters('linuxOffer')]",
     "linuxSku": "[parameters('linuxSku')]",
+
+    "isValidation": "[parameters('isValidation')]",
+    "storageLocations": [
+      "[resourceGroup().location]",
+      "East US 2 (Stage)"
+    ],
+    "storageLocation": "[variables('storageLocations')[variables('isValidation')]]",
 
     "vmNameMaster": "swarm-master-",
     "vmNameNode": "swarm-node-",
@@ -182,7 +176,7 @@
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[variables('newStorageAccountName')]",
       "apiVersion": "2015-06-15",
-      "location": "[resourceGroup().location]",
+      "location": "[variables('storageLocation')]",
       "properties": {
         "accountType": "[variables('storageAccountType')]"
       }
