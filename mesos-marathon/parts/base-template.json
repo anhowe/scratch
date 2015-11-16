@@ -149,7 +149,7 @@
     "isValidation": "[parameters('isValidation')]",
     "storageLocations": [
       "[resourceGroup().location]",
-      "US East 2 (Stage)"
+      "East US 2 (Stage)"
     ],
     "storageLocation": "[variables('storageLocations')[variables('isValidation')]]",
     "marathonEnabled": true,
