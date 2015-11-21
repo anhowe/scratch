@@ -65,7 +65,7 @@ def processBaseTemplate(baseTemplatePath, jumpboxTemplatePath):
     
     if jumpboxTemplatePath != None :
         # Add Jumpbox FQDN Fragment if jumpboxTemplatePath is defined
-        jumpboxFQDN = "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('jumpboxEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
+        jumpboxFQDN = "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('jumpboxPublicIPAddressName'))).dnsSettings.fqdn]"
         
         # Generate jumpbox Yaml file for ARM
         linuxJumpboxYamlFile = convertToOneArmTemplateLine(buildYamlFileWithScriptFile(LINUX_JUMPBOX_INSTALL_SCRIPT))

@@ -2,42 +2,44 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "adminUsername": {
+    "linuxAdminUsername": {
       "type": "string",
       "defaultValue": "azureuser",
       "metadata": {
-        "description": "SSH user for the Virtual Machines."
+        "description": "User name for the Virtual Machine (SSH or Password)."
       }
     },
-    "adminPassword": {
+    "linuxAdminPassword": {
       "type": "securestring",
+      "defaultValue": "",
       "metadata": {
-        "description": "Password for the Virtual Machine."
+        "description": "Password for the Virtual Machine.  Not Required.  If not set, you must provide a SSH key."
       }
     },
-    "jumpboxEndpointDNSNamePrefix": {
+    "sshRSAPublicKey": {
       "type": "string",
+      "defaultValue": "",
       "metadata": {
-        "description": "Sets the Domain name label for the jumpbox.  The concatenation of the domain name label and the regionalized DNS zone make up the fully qualified domain name associated with the public IP address."
+        "description": "SSH public key used for auth to all Linux machines.  Not Required.  If not set, you must provide a password key."
       }
     },
-    "managementEndpointDNSNamePrefix": {
+    "masterEndpointDNSNamePrefix": {
       "type": "string",
       "metadata": {
-        "description": "Sets the Domain name label for the container service.  The concatenation of the domain name label and the regionalized DNS zone make up the fully qualified domain name associated with the public IP address."
+        "description": "Sets the Domain name label for the master IP Address.  The concatenation of the domain name label and the regional DNS zone make up the fully qualified domain name associated with the public IP address."
       }
     },
-    "applicationEndpointDNSNamePrefix": {
+    "agentEndpointDNSNamePrefix": {
       "type": "string",
       "metadata": {
-        "description": "Sets the Domain name label for the application.  The concatenation of the domain name label and the regionalized DNS zone make up the fully qualified domain name associated with the public IP address."
+        "description": "Sets the Domain name label for the agent pool IP Address.  The concatenation of the domain name label and the regional DNS zone make up the fully qualified domain name associated with the public IP address."
       }
     },
     "agentCount": {
       "type": "int",
       "defaultValue": 1,
       "metadata": {
-        "description": "The number of Mesos agents for the cluster.  This value can be from 1 to 100"
+        "description": "The number of swarm agents for the cluster.  This value can be from 1 to 100"
       },
       "allowedValues": [
         1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,
@@ -56,7 +58,7 @@
         5
       ],
       "metadata": {
-        "description": "The number of Mesos masters for the cluster."
+        "description": "The number of swarm masters for the cluster."
       }
     },
     "agentVMSize": {
@@ -70,13 +72,6 @@
       ],
       "metadata": {
         "description": "The size of the Virtual Machine. Allowable machine values are 1 core (A1), 2 core (A2), 4 core (A3), 8 core (A4)."
-      }
-    },
-    "sshRSAPublicKey": {
-      "type": "string",
-      "defaultValue": "disabled",
-      "metadata": {
-        "description": "Configure all linux machines with the SSH rsa public key string.  Use 'disabled' to not configure access with SSH rsa public key."
       }
     },
     "linuxPublisher": {
@@ -107,14 +102,35 @@
       "metadata": {
         "description": "This is testing in the validation region"
       }
+    },
+    "disablePasswordAuthentication": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "This setting controls whether password auth is disabled for Linux VMs provisioned by this template. Default is true which disables password and makes SSH key required."
+      }
+    },
+    "setLinuxConfigurationForVMCreate": {
+      "type": "int",
+      "defaultValue": 1,
+      "allowedValues": [0,1],
+      "metadata": {
+        "description": "This setting controls whether Linux configuration with SSH Key is passed in VM PUT Payload.  Defaults to 1.  If SSH Key is blank, this must be set to 0."
+      }
+    },
+    "nameSuffix": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "A string to include in the names of resources created.  Defaults to blank."
+      }
     }
   },
   "variables": {
-    "adminUsername": "[parameters('adminUsername')]",
-    "adminPassword": "[parameters('adminPassword')]",
-    "jumpboxEndpointDNSNamePrefix": "[tolower(parameters('jumpboxEndpointDNSNamePrefix'))]",
-    "managementEndpointDNSNamePrefix": "[tolower(parameters('managementEndpointDNSNamePrefix'))]",
-    "applicationEndpointDNSNamePrefix": "[tolower(parameters('applicationEndpointDNSNamePrefix'))]",
+    "adminUsername": "[parameters('linuxAdminUsername')]",
+    "adminPassword": "[parameters('linuxAdminPassword')]",
+    "masterEndpointDNSNamePrefix": "[tolower(parameters('masterEndpointDNSNamePrefix'))]",
+    "agentEndpointDNSNamePrefix": "[tolower(parameters('agentEndpointDNSNamePrefix'))]",
     "agentCount": "[parameters('agentCount')]",
     "masterCount": "[parameters('masterCount')]",
     "agentVMSize": "[parameters('agentVMSize')]",
@@ -122,6 +138,11 @@
     "linuxPublisher": "[parameters('linuxPublisher')]",
     "linuxOffer": "[parameters('linuxOffer')]",
     "linuxSku": "[parameters('linuxSku')]",
+    
+    "nameSuffix": "[parameters('nameSuffix')]",
+    
+    "masterPublicIPAddressName": "[concat('swarm-master-ip-', variables('masterEndpointDNSNamePrefix'), '-', variables('nameSuffix'))]",
+    "agentPublicIPAddressName": "[concat('swarm-agent-ip-', variables('agentEndpointDNSNamePrefix'), '-', variables('nameSuffix'))]",
 
     "isValidation": "[parameters('isValidation')]",
     "storageLocations": [
@@ -129,41 +150,58 @@
       "East US 2 (Stage)"
     ],
     "storageLocation": "[variables('storageLocations')[variables('isValidation')]]",
+    
+    "disablePasswordAuthentication": "[parameters('disablePasswordAuthentication')]",
+    "setLinuxConfigurationForVMCreate": "[parameters('setLinuxConfigurationForVMCreate')]",
+    "linuxConfigurations": [
+        {},
+        {
+            "disablePasswordAuthentication": "[variables('disablePasswordAuthentication')]",
+            "ssh": {
+                "publicKeys": [
+                    {
+                        "path": "[variables('sshKeyPath')]",
+                        "keyData": "[variables('sshRSAPublicKey')]"
+                    }
+                ]
+            }
+        }
+    ],
+    "linuxConfiguration": "[variables('linuxConfigurations')[variables('setLinuxConfigurationForVMCreate')]]",
 
-    "vmNameMaster": "swarm-master-",
-    "vmNameNode": "swarm-node-",
+    "vmNameMaster": "[concat('swarm-master-', variables('nameSuffix'), '-' )]",
+    "vmNameAgent": "[concat('swarm-agent-', variables('nameSuffix'), '-')]",
     "vmSizeMaster": "Standard_A0",
-    "vmSizeNode": "Standard_A2",
-    "availabilitySetMasters": "swarm-masters-set",
-    "availabilitySetNodes": "swarm-nodes-set",
+    "availabilitySetMasters": "[concat('swarm-availabilitySet-masters-', variables('nameSuffix'))]",
+    "availabilitySetAgents": "[concat('swarm-availabilitySet-agents-', variables('nameSuffix'))]",
     "osImagePublisher": "[variables('linuxPublisher')]",
     "osImageOffer": "[variables('linuxOffer')]",
     "osImageSKU": "[variables('linuxSku')]",
-    "managementPublicIPAddrName": "swarm-lb-masters-ip",
-    "nodesPublicIPAddrName": "swarm-lb-nodes-ip",
-    "virtualNetworkName": "swarm-vnet",
-    "subnetNameMasters": "subnet-masters",
-    "subnetNameNodes": "subnet-nodes",
+    "virtualNetworkName": "[concat('swarm-vnet-', variables('nameSuffix'))]",
+    "subnetNameMasters": "[concat('swarm-subnet-masters', variables('nameSuffix'))]",
+    "subnetNameAgents": "[concat('swarm-subnet-agents', variables('nameSuffix'))]",
     "addressPrefixMasters": "10.0.0.0/16",
-    "addressPrefixNodes": "192.168.0.0/16",
+    "addressPrefixAgents": "192.168.0.0/16",
     "subnetPrefixMasters": "10.0.0.0/24",
-    "subnetPrefixNodes": "192.168.0.0/24",
+    "subnetPrefixAgents": "192.168.0.0/24",
     "subnetRefMaster": "[concat(resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName')),'/subnets/',variables('subnetNameMasters'))]",
-    "subnetRefNodes": "[concat(resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName')),'/subnets/',variables('subnetNameNodes'))]",
-    "nsgName": "swarm-nsg",
+    "subnetRefAgents": "[concat(resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName')),'/subnets/',variables('subnetNameAgents'))]",
+    "nsgName": "[concat('swarm-nsg-', variables('nameSuffix'))]",
     "nsgID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName'))]",
-    "newStorageAccountName": "[uniqueString(resourceGroup().id, deployment().name)]",
-    "clusterFqdn": "[concat('swarm-',uniqueString(resourceGroup().id, deployment().name))]",
+    
+    "newStorageAccountName": "[concat(uniqueString(variables('masterEndpointDNSNamePrefix')), 'swarmsa')]",
+
     "storageAccountType": "Standard_LRS",
     "vhdBlobContainer": "vhds",
-    "mastersLbName": "swarm-lb-masters",
+    "mastersLbName": "[concat('swarm-lb-masters-', variables('nameSuffix'))]",
     "mastersLbID": "[resourceId('Microsoft.Network/loadBalancers',variables('mastersLbName'))]",
     "mastersLbIPConfigName": "MastersLBFrontEnd",
     "mastersLbIPConfigID": "[concat(variables('mastersLbID'),'/frontendIPConfigurations/', variables('mastersLbIPConfigName'))]",
-    "mastersLbBackendPoolName": "swarm-masters-pool",
-    "nodesLbName": "swarm-lb-nodes",
-    "nodesLbID": "[resourceId('Microsoft.Network/loadBalancers',variables('nodesLbName'))]",
-    "nodesLbBackendPoolName": "swarm-nodes-pool",
+    "mastersLbBackendPoolName": "[concat('swarm-masters-pool', variables('nameSuffix'))]",
+    
+    "agentsLbName": "[concat('swarm-lb-agents-', variables('nameSuffix'))]",
+    "agentsLbID": "[resourceId('Microsoft.Network/loadBalancers',variables('agentsLbName'))]",
+    "agentsLbBackendPoolName": "[concat('swarm-agents-pool', variables('nameSuffix'))]",
     "sshKeyPath": "[concat('/home/', variables('adminUsername'), '/.ssh/authorized_keys')]",
     "consulServerArgs": [
       "-advertise 10.0.0.4 -bootstrap-expect 3 -retry-join 10.0.0.5 -retry-join 10.0.0.6",
@@ -190,7 +228,7 @@
     },
     {
       "type": "Microsoft.Compute/availabilitySets",
-      "name": "[variables('availabilitySetNodes')]",
+      "name": "[variables('availabilitySetAgents')]",
       "apiVersion": "2015-06-15",
       "location": "[resourceGroup().location]",
       "properties": {}
@@ -198,24 +236,24 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
-      "name": "[variables('managementPublicIPAddrName')]",
+      "name": "[variables('masterPublicIPAddressName')]",
       "location": "[resourceGroup().location]",
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
         "dnsSettings": {
-          "domainNameLabel": "[concat(variables('clusterFqdn'), '-manage')]"
+          "domainNameLabel": "[variables('masterEndpointDNSNamePrefix')]"
         }
       }
     },
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
-      "name": "[variables('nodesPublicIPAddrName')]",
+      "name": "[variables('agentPublicIPAddressName')]",
       "location": "[resourceGroup().location]",
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
         "dnsSettings": {
-          "domainNameLabel": "[variables('clusterFqdn')]"
+          "domainNameLabel": "[variables('agentEndpointDNSNamePrefix')]"
         }
       }
     },
@@ -231,7 +269,7 @@
         "addressSpace": {
           "addressPrefixes": [
             "[variables('addressPrefixMasters')]",
-            "[variables('addressPrefixNodes')]"
+            "[variables('addressPrefixAgents')]"
           ]
         },
         "subnets": [
@@ -245,9 +283,9 @@
             }
           },
           {
-            "name": "[variables('subnetNameNodes')]",
+            "name": "[variables('subnetNameAgents')]",
             "properties": {
-              "addressPrefix": "[variables('subnetPrefixNodes')]",
+              "addressPrefix": "[variables('subnetPrefixAgents')]",
               "networkSecurityGroup": {
                 "id": "[variables('nsgID')]"
               }
@@ -283,7 +321,7 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkInterfaces",
-      "name": "[concat(variables('vmNameMaster'), copyIndex(), '-nic')]",
+      "name": "[concat(variables('vmNameMaster'), '-nic', copyIndex() )]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "nicLoopMaster",
@@ -325,7 +363,7 @@
       "type": "Microsoft.Network/loadBalancers",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/publicIPAddresses/', variables('managementPublicIPAddrName'))]"
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('masterPublicIPAddressName'))]"
       ],
       "properties": {
         "frontendIPConfigurations": [
@@ -333,7 +371,7 @@
             "name": "[variables('mastersLbIPConfigName')]",
             "properties": {
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('managementPublicIPAddrName'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('masterPublicIPAddressName'))]"
               }
             }
           }
@@ -369,11 +407,11 @@
     },
     {
       "apiVersion": "2015-06-15",
-      "name": "[variables('nodesLbName')]",
+      "name": "[variables('agentsLbName')]",
       "type": "Microsoft.Network/loadBalancers",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/publicIPAddresses/', variables('nodesPublicIPAddrName'))]"
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('agentPublicIPAddressName'))]"
       ],
       "properties": {
         "frontendIPConfigurations": [
@@ -381,14 +419,14 @@
             "name": "LoadBalancerFrontEnd",
             "properties": {
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('nodesPublicIPAddrName'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('agentPublicIPAddressName'))]"
               }
             }
           }
         ],
         "backendAddressPools": [
           {
-            "name": "[variables('nodesLbBackendPoolName')]"
+            "name": "[variables('agentsLbBackendPoolName')]"
           }
         ]
       }
@@ -396,28 +434,28 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkInterfaces",
-      "name": "[concat(variables('vmNameNode'),copyIndex(), '-nic')]",
+      "name": "[concat(variables('vmNameAgent'), '-nic', copyIndex())]",
       "location": "[resourceGroup().location]",
       "copy": {
-        "name": "nicLoopNode",
+        "name": "nicLoopAgent",
         "count": "[variables('agentCount')]"
       },
       "dependsOn": [
-        "[concat('Microsoft.Network/loadBalancers/', variables('nodesLbName'))]",
+        "[concat('Microsoft.Network/loadBalancers/', variables('agentsLbName'))]",
         "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]"
       ],
       "properties": {
         "ipConfigurations": [
           {
-            "name": "ipConfigNode",
+            "name": "ipConfigAgent",
             "properties": {
               "privateIPAllocationMethod": "Dynamic",
               "subnet": {
-                "id": "[variables('subnetRefNodes')]"
+                "id": "[variables('subnetRefAgents')]"
               },
               "loadBalancerBackendAddressPools": [
                 {
-                  "id": "[concat(variables('nodesLbID'), '/backendAddressPools/', variables('nodesLbBackendPoolName'))]"
+                  "id": "[concat(variables('agentsLbID'), '/backendAddressPools/', variables('agentsLbBackendPoolName'))]"
                 }
               ]
             }
@@ -436,7 +474,7 @@
       },
       "dependsOn": [
         "[concat('Microsoft.Storage/storageAccounts/', variables('newStorageAccountName'))]",
-        "[concat('Microsoft.Network/networkInterfaces/', variables('vmNameMaster'), copyIndex(), '-nic')]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('vmNameMaster'), '-nic', copyIndex())]",
         "[concat('Microsoft.Compute/availabilitySets/', variables('availabilitySetMasters'))]"
       ],
       "properties": {
@@ -449,17 +487,8 @@
         "osProfile": {
           "computername": "[concat(variables('vmNameMaster'), copyIndex())]",
           "adminUsername": "[variables('adminUsername')]",
-          "linuxConfiguration": {
-            "disablePasswordAuthentication": "true",
-            "ssh": {
-              "publicKeys": [
-                {
-                  "path": "[variables('sshKeyPath')]",
-                  "keyData": "[variables('sshRSAPublicKey')]"
-                }
-              ]
-            }
-          }
+          "adminPassword": "[variables('adminPassword')]",
+          "linuxConfiguration": "[variables('linuxConfiguration')]"
         },
         "storageProfile": {
           "imageReference": {
@@ -480,7 +509,7 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('vmNameMaster'), copyIndex(), '-nic'))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('vmNameMaster'), '-nic', copyIndex() ))]"
             }
           ]
         }
@@ -489,37 +518,28 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Compute/virtualMachines",
-      "name": "[concat(variables('vmNameNode'), copyIndex())]",
+      "name": "[concat(variables('vmNameAgent'), copyIndex())]",
       "location": "[resourceGroup().location]",
       "copy": {
-        "name": "vmLoopNode",
+        "name": "vmLoopAgent",
         "count": "[variables('agentCount')]"
       },
       "dependsOn": [
         "[concat('Microsoft.Storage/storageAccounts/', variables('newStorageAccountName'))]",
-        "[concat('Microsoft.Network/networkInterfaces/', variables('vmNameNode'), copyIndex(), '-nic')]"
+        "[concat('Microsoft.Network/networkInterfaces/', variables('vmNameAgent'), '-nic', copyIndex() )]"
       ],
       "properties": {
         "availabilitySet": {
-          "id": "[resourceId('Microsoft.Compute/availabilitySets',variables('availabilitySetNodes'))]"
+          "id": "[resourceId('Microsoft.Compute/availabilitySets',variables('availabilitySetAgents'))]"
         },
         "hardwareProfile": {
-          "vmSize": "[variables('vmSizeNode')]"
+          "vmSize": "[variables('agentVMSize')]"
         },
         "osProfile": {
-          "computername": "[concat(variables('vmNameNode'), copyIndex())]",
+          "computername": "[concat(variables('vmNameAgent'), copyIndex())]",
           "adminUsername": "[variables('adminUsername')]",
-          "linuxConfiguration": {
-            "disablePasswordAuthentication": "true",
-            "ssh": {
-              "publicKeys": [
-                {
-                  "path": "[variables('sshKeyPath')]",
-                  "keyData": "[variables('sshRSAPublicKey')]"
-                }
-              ]
-            }
-          }
+          "adminPassword": "[variables('adminPassword')]",
+          "linuxConfiguration": "[variables('linuxConfiguration')]"
         },
         "storageProfile": {
           "imageReference": {
@@ -529,9 +549,9 @@
             "version": "latest"
           },
           "osDisk": {
-            "name": "[concat(variables('vmNameNode'), copyIndex(),'-osdisk')]",
+            "name": "[concat(variables('vmNameAgent'), copyIndex(),'-osdisk')]",
             "vhd": {
-              "uri": "[concat('http://', variables('newStorageAccountName'), '.blob.core.windows.net/', variables('vhdBlobContainer'), '/node-', copyIndex(), '-osdisk.vhd')]"
+              "uri": "[concat('http://', variables('newStorageAccountName'), '.blob.core.windows.net/', variables('vhdBlobContainer'), '/agent-', copyIndex(), '-osdisk.vhd')]"
             },
             "caching": "ReadWrite",
             "createOption": "FromImage"
@@ -540,7 +560,7 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('vmNameNode'), copyindex(), '-nic'))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('vmNameAgent'), '-nic', copyindex()))]"
             }
           ]
         }
@@ -583,7 +603,7 @@
             },
             "swarm": {
               "image": "swarm:0.4.0",
-              "command": "[concat('--debug manage --replication --advertise ', reference(concat(variables('vmNameMaster'), copyIndex(), '-nic')).ipConfigurations[0].properties.privateIPAddress, ':2375 consul://10.0.0.4:8500/nodes')]",
+              "command": "[concat('--debug manage --replication --advertise ', reference(concat(variables('vmNameMaster'), '-nic', copyIndex() )).ipConfigurations[0].properties.privateIPAddress, ':2375 consul://10.0.0.4:8500/nodes')]",
               "ports": [
                 "2375:2375"
               ],
@@ -601,15 +621,15 @@
     },
     {
       "type": "Microsoft.Compute/virtualMachines/extensions",
-      "name": "[concat(variables('vmNameNode'), copyIndex(), '/DockerExtension')]",
+      "name": "[concat(variables('vmNameAgent'), copyIndex(), '/DockerExtension')]",
       "apiVersion": "2015-06-15",
       "location": "[resourceGroup().location]",
       "copy": {
-        "name": "extensionLoopNode",
+        "name": "extensionLoopAgent",
         "count": "[variables('agentCount')]"
       },
       "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachines/', variables('vmNameNode'), copyIndex())]"
+        "[concat('Microsoft.Compute/virtualMachines/', variables('vmNameAgent'), copyIndex())]"
       ],
       "properties": {
         "publisher": "Microsoft.Azure.Extensions",
@@ -623,7 +643,7 @@
             "swarm": {
               "image": "swarm:0.4.0",
               "restart": "always",
-              "command": "[concat('join --advertise=', reference(concat(variables('vmNameNode'), copyIndex(), '-nic')).ipConfigurations[0].properties.privateIPAddress, ':2375 consul://10.0.0.4:8500/nodes')]"
+              "command": "[concat('join --advertise=', reference(concat(variables('vmNameAgent'), '-nic', copyIndex())).ipConfigurations[0].properties.privateIPAddress, ':2375 consul://10.0.0.4:8500/nodes')]"
             }
           }
         }
@@ -631,29 +651,13 @@
     }
   ],
   "outputs": {
-    "sshTunnelCmd": {
+   "masterFQDN": {
       "type": "string",
-      "value": "[concat('ssh -L 2375:swarm-master-0:2375 -N ', variables('adminUsername'), '@', reference(variables('managementPublicIPAddrName')).dnsSettings.fqdn, ' -p 2200')]"
+      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('masterPublicIPAddressName'))).dnsSettings.fqdn]"
     },
-    "dockerCmd": {
+    "agentFQDN": {
       "type": "string",
-      "value": "docker -H tcp://localhost:2375 info"
-    },
-    "swarmNodesLoadBalancerAddress": {
-      "type": "string",
-      "value": "[reference(variables('nodesPublicIPAddrName')).dnsSettings.fqdn]"
-    },
-    "sshMaster0": {
-      "type": "string",
-      "value": "[concat('ssh ', variables('adminUsername'), '@', reference(variables('managementPublicIPAddrName')).dnsSettings.fqdn, ' -A -p 2200')]"
-    },
-    "sshMaster1": {
-      "type": "string",
-      "value": "[concat('ssh ', variables('adminUsername'), '@', reference(variables('managementPublicIPAddrName')).dnsSettings.fqdn, ' -A -p 2201')]"
-    },
-    "sshMaster2": {
-      "type": "string",
-      "value": "[concat('ssh ', variables('adminUsername'), '@', reference(variables('managementPublicIPAddrName')).dnsSettings.fqdn, ' -A -p 2202')]"
+      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('agentPublicIPAddressName'))).dnsSettings.fqdn]"
     }
   }
 }

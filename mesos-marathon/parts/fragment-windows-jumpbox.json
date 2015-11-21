@@ -1,7 +1,7 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
-      "name": "[variables('jumpboxEndpointDNSNamePrefix')]",
+      "name": "[variables('jumpboxPublicIPAddressName')]",
       "location": "[resourceGroup().location]",
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
@@ -40,7 +40,7 @@
       "name": "[concat(variables('jumpboxVMName'), '-nic')]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/publicIPAddresses/', variables('jumpboxEndpointDNSNamePrefix'))]",
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('jumpboxPublicIPAddressName'))]",
         "[variables('vnetID')]",
         "[variables('jumpboxNSGID')]"
       ],
@@ -55,7 +55,7 @@
               "privateIPAllocationMethod": "Static",
               "privateIPAddress": "[concat(split(variables('subnetPrefix'),'0/18')[0], variables('jumpboxAddr'))]",
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('jumpboxEndpointDNSNamePrefix'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('jumpboxPublicIPAddressName'))]"
               },
               "subnet": {
                 "id": "[variables('subnetRef')]"
@@ -72,7 +72,7 @@
       "location": "[resourceGroup().location]",
       "dependsOn": [
         "[concat('Microsoft.Network/networkInterfaces/', variables('jumpboxVMName'), '-nic')]",
-        "[variables('managementStorageAccountName')]"
+        "[variables('masterStorageAccountName')]"
       ],
       "properties": {
         "hardwareProfile": {
@@ -80,8 +80,8 @@
         },
         "osProfile": {
           "computername": "[variables('jumpboxVMName')]",
-          "adminUsername": "[variables('adminUsername')]",
-          "adminPassword": "[variables('adminPassword')]"
+          "adminUsername": "[variables('windowsAdminUsername')]",
+          "adminPassword": "[variables('windowsAdminPassword')]"
         },
         "storageProfile": {
           "imageReference": {
@@ -93,7 +93,7 @@
           "osDisk": {
             "name": "[concat(variables('jumpboxVMName'),'-osdisk')]",
             "vhd": {
-              "uri": "[concat('http://', variables('managementStorageAccountName'), '.blob.core.windows.net/vhds/', variables('jumpboxVMName'), '-osdisk.vhd')]"
+              "uri": "[concat('http://', variables('masterStorageAccountName'), '.blob.core.windows.net/vhds/', variables('jumpboxVMName'), '-osdisk.vhd')]"
             },
             "caching": "ReadWrite",
             "createOption": "FromImage"

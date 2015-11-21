@@ -2,17 +2,39 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "adminUsername": {
+    "linuxAdminUsername": {
       "type": "string",
       "defaultValue": "azureuser",
       "metadata": {
-        "description": "User name for the Virtual Machine."
+        "description": "User name for the Linux Virtual Machines (SSH or Password)."
       }
     },
-    "adminPassword": {
+    "linuxAdminPassword": {
       "type": "securestring",
+      "defaultValue": "",
       "metadata": {
-        "description": "Password for the Virtual Machine."
+        "description": "Password for the Linux Virtual Machine.  Not Required.  If not set, you must provide a SSH key."
+      }
+    },
+    "sshRSAPublicKey": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "SSH public key used for auth to all Linux machines.  Not Required.  If not set, you must provide a password key."
+      }
+    },
+    "windowsAdminUsername": {
+      "type": "string",
+      "defaultValue": "azureuser",
+      "metadata": {
+        "description": "User name for the Windows Jumpbox Virtual Machine (Password Only Supported)."
+      }
+    },
+    "windowsAdminPassword": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Password for the Windows Jumpbox Virtual Machine."
       }
     },
     "jumpboxEndpointDNSNamePrefix": {
@@ -21,16 +43,16 @@
         "description": "Sets the Domain name label for the jumpbox.  The concatenation of the domain name label and the regionalized DNS zone make up the fully qualified domain name associated with the public IP address."
       }
     },
-    "managementEndpointDNSNamePrefix": {
+    "masterEndpointDNSNamePrefix": {
       "type": "string",
       "metadata": {
-        "description": "Sets the Domain name label for the container service.  The concatenation of the domain name label and the regionalized DNS zone make up the fully qualified domain name associated with the public IP address."
+        "description": "Sets the Domain name label for the master IP Address.  The concatenation of the domain name label and the regional DNS zone make up the fully qualified domain name associated with the public IP address."
       }
     },
-    "applicationEndpointDNSNamePrefix": {
+    "agentEndpointDNSNamePrefix": {
       "type": "string",
       "metadata": {
-        "description": "Sets the Domain name label for the application.  The concatenation of the domain name label and the regionalized DNS zone make up the fully qualified domain name associated with the public IP address."
+        "description": "Sets the Domain name label for the agent pool IP Address.  The concatenation of the domain name label and the regional DNS zone make up the fully qualified domain name associated with the public IP address."
       }
     },
     "agentCount": {
@@ -70,13 +92,6 @@
       ],
       "metadata": {
         "description": "The size of the Virtual Machine. Allowable machine values are 1 core (A1), 2 core (A2), 4 core (A3), 8 core (A4)."
-      }
-    },
-    "sshRSAPublicKey": {
-      "type": "string",
-      "defaultValue": "disabled",
-      "metadata": {
-        "description": "Configure all linux machines with the SSH rsa public key string.  Use 'disabled' to not configure access with SSH rsa public key."
       }
     },
     "linuxPublisher": {
@@ -128,14 +143,36 @@
       "metadata": {
         "description": "This is testing in the validation region"
       }
+    },
+    "disablePasswordAuthentication": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "This setting controls whether password auth is disabled for Linux VMs provisioned by this template. Default is true which disables password and makes SSH key required."
+      }
+    },
+    "setLinuxConfigurationForVMCreate": {
+      "type": "int",
+      "defaultValue": 1,
+      "allowedValues": [0,1],
+      "metadata": {
+        "description": "This setting controls whether Linux configuration with SSH Key is passed in VM PUT Payload.  Defaults to 1.  If SSH Key is blank, this must be set to 0."
+      }
+    },
+    "nameSuffix": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "A string to include in the names of resources created.  Defaults to blank."
+      }
     }
   },
   "variables": {
-    "adminUsername": "[parameters('adminUsername')]",
-    "adminPassword": "[parameters('adminPassword')]",
+    "adminUsername": "[parameters('linuxAdminUsername')]",
+    "adminPassword": "[parameters('linuxAdminPassword')]",
     "jumpboxEndpointDNSNamePrefix": "[tolower(parameters('jumpboxEndpointDNSNamePrefix'))]",
-    "managementEndpointDNSNamePrefix": "[tolower(parameters('managementEndpointDNSNamePrefix'))]",
-    "applicationEndpointDNSNamePrefix": "[tolower(parameters('applicationEndpointDNSNamePrefix'))]",
+    "masterEndpointDNSNamePrefix": "[tolower(parameters('masterEndpointDNSNamePrefix'))]",
+    "agentEndpointDNSNamePrefix": "[tolower(parameters('agentEndpointDNSNamePrefix'))]",
     "agentCount": "[parameters('agentCount')]",
     "masterCount": "[parameters('masterCount')]",
     "agentVMSize": "[parameters('agentVMSize')]",
@@ -146,12 +183,43 @@
     "windowsJumpboxPublisher": "[parameters('windowsJumpboxPublisher')]",
     "windowsJumpboxOffer": "[parameters('windowsJumpboxOffer')]",
     "windowsJumpboxSku": "[parameters('windowsJumpboxSku')]",
+    "windowsAdminUsername": "[parameters('windowsAdminUsername')]",
+    "windowsAdminPassword": "[parameters('windowsAdminPassword')]",
+    
+    "nameSuffix": "[parameters('nameSuffix')]",
+   
     "isValidation": "[parameters('isValidation')]",
     "storageLocations": [
       "[resourceGroup().location]",
       "East US 2 (Stage)"
     ],
     "storageLocation": "[variables('storageLocations')[variables('isValidation')]]",
+    
+    "sshKeyPath": "[concat('/home/', variables('adminUsername'), '/.ssh/authorized_keys')]",
+    "disablePasswordAuthentication": "[parameters('disablePasswordAuthentication')]",
+    "setLinuxConfigurationForVMCreate": "[parameters('setLinuxConfigurationForVMCreate')]",
+    "linuxConfigurations": [
+        {},
+        {
+            "disablePasswordAuthentication": "[variables('disablePasswordAuthentication')]",
+            "ssh": {
+                "publicKeys": [
+                    {
+                        "path": "[variables('sshKeyPath')]",
+                        "keyData": "[variables('sshRSAPublicKey')]"
+                    }
+                ]
+            }
+        }
+    ],
+    "linuxConfiguration": "[variables('linuxConfigurations')[variables('setLinuxConfigurationForVMCreate')]]",
+    
+    "orchestratorName": "mesos",
+    
+    "masterPublicIPAddressName": "[concat(variables('orchestratorName'), '-master-ip-', variables('masterEndpointDNSNamePrefix'), '-', variables('nameSuffix'))]",
+    "agentPublicIPAddressName": "[concat(variables('orchestratorName'), '-agent-ip-', variables('agentEndpointDNSNamePrefix'), '-', variables('nameSuffix'))]",
+    "jumpboxPublicIPAddressName": "[concat(variables('orchestratorName'), '-jumpbox-ip-', variables('jumpboxEndpointDNSNamePrefix'), '-', variables('nameSuffix'))]",
+    
     "marathonEnabled": true,
     "chronosEnabled": true,
     "swarmEnabled": false,
@@ -159,13 +227,14 @@
     "osImageOffer": "[variables('linuxOffer')]",
     "osImageSKU": "[variables('linuxSku')]",
     "osImageVersion": "latest",
-    "virtualNetworkName": "VNET",
+
+    "virtualNetworkName": "[concat(variables('orchestratorName'), '-vnet-', variables('nameSuffix'))]",
     "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
-    "subnetName": "Subnet",
+    "subnetName": "[concat(variables('orchestratorName'), '-subnet')]",
     "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
     "addressPrefix": "10.0.0.0/16",
     "subnetPrefix": "10.0.0.0/18",
-    "storageAccountType": "Standard_GRS",
+    "storageAccountType": "Standard_LRS",
     "storageAccountPrefixes": [
       "0","6","c","i","o","u","1","7","d","j","p","v",
       "2","8","e","k","q","w","3","9","f","l","r","x",
@@ -173,20 +242,20 @@
     ],
     "storageAccountPrefixesCount": "[length(variables('storageAccountPrefixes'))]",
     "vmsPerStorageAccount": 10,
-    "storageAccountBaseName": "[concat(uniqueString(subscription().subscriptionId,resourceGroup().id),'mesos')]",
-    "managementStorageAccountName": "[concat(variables('storageAccountBaseName'), '0')]",
+    "storageAccountBaseName": "[concat(uniqueString(variables('masterEndpointDNSNamePrefix')), variables('orchestratorName'))]",
+    "masterStorageAccountName": "[concat(variables('storageAccountBaseName'), '0')]",
     "omsStorageAccount": "none",
     "omsStorageAccountKey": "none",
     "postInstallScriptURI": "disabled",
     "singleQuote": "'",
-    "sshQuotedString": "[concat(' ', variables('singleQuote'), variables('sshRSAPublicKey'), variables('singleQuote'), ' ')]",
+    "sshQuotedString": "[concat(' ', variables('singleQuote'), 'disabled', variables('singleQuote'), ' ')]",
     "clusterInstallParameters": "[concat(variables('masterCount'), ' ',variables('masterVMNamePrefix'), ' ',variables('masterFirstAddr'), ' ',variables('swarmEnabled'),' ',variables('marathonEnabled'),' ',variables('chronosEnabled'),' ',variables('omsStorageAccount'),' ',variables('omsStorageAccountKey'),' ', variables('adminUsername'),variables('sshQuotedString'))]",
 
-    "jumpboxNSGName": "jumpbox-nsg",
+    "jumpboxNSGName": "[concat(variables('orchestratorName'), '-jumpbox-nsg-', variables('nameSuffix'))]",
     "jumpboxNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('jumpboxNSGName'))]",
     "jumpboxAddr": 4,
-    "jumpboxVMName": "jumpbox",
-    "jumpboxVMSize":"Standard_A1",
+    "jumpboxVMName": "[concat(variables('orchestratorName'), '-jumpbox-', variables('nameSuffix'))]",
+    "jumpboxVMSize": "Standard_A1",
 
     "jumpboxLinuxInstallParameters": "[concat(variables('adminUsername'), variables('sshQuotedString'))]",
     "jumpboxLinuxCustomScript": "[concat('/usr/bin/nohup /bin/bash -c \"/bin/bash /opt/azure/containers/configure-ubuntu.sh ',variables('jumpboxLinuxInstallParameters'),' >> /var/log/azure/jumpbox-bootstrap.log 2>&1 &\" &')]",
@@ -195,29 +264,30 @@
     "setBrowserFirstTabDefaultSuffix": "0:5050",
     "jumpboxWindowsCustomScript": "[concat(variables('setBrowserFirstTabDefaultPrefix'),variables('masterVMNamePrefix'),variables('setBrowserFirstTabDefaultSuffix'))]",
 
-    "masterNSGName": "master-nsg",
+    "masterNSGName": "[concat(variables('orchestratorName'), '-master-nsg-', variables('nameSuffix'))]",
     "masterNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('masterNSGName'))]",
-    "masterVMNamePrefix": "master",
+    "masterVMNamePrefix": "[concat(variables('orchestratorName'), '-master-', variables('nameSuffix'), '-')]",
     "masterFirstAddr": 5,
-    "masterAvailabilitySet": "masterAvailabilitySet",
-    "masterLbName": "masterlb",
+    "masterAvailabilitySet": "[concat(variables('orchestratorName'), '-master-availabilitySet-', variables('nameSuffix'))]",
+    "masterLbName": "[concat(variables('orchestratorName'), '-master-lb-', variables('nameSuffix'))]",
     "masterVMSize":"Standard_A1",
     "masterLbID": "[resourceId('Microsoft.Network/loadBalancers',variables('masterLbName'))]",
-    "masterLbIPConfigName": "masterLBFrontEnd",
+    "masterLbIPConfigName": "[concat(variables('orchestratorName'), '-master-lbFrontEnd-', variables('nameSuffix'))]",
     "masterLbIPConfigID": "[concat(variables('masterLbID'),'/frontendIPConfigurations/', variables('masterLbIPConfigName'))]",
-    "masterLbBackendPoolName": "master-pool",
+    "masterLbBackendPoolName": "[concat(variables('orchestratorName'), '-master-pool-', variables('nameSuffix'))]",
     "masterCustomScript": "[concat('/bin/bash -c \"/bin/bash /opt/azure/containers/configure-mesos-cluster.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/cluster-bootstrap.log 2>&1\"')]",
 
     "agentNSGName": "agent-nsg",
+    "agentNSGName": "[concat(variables('orchestratorName'), '-agent-nsg-', variables('nameSuffix'))]",
     "agentNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('agentNSGName'))]",
     "agentFirstAddr": 20,
-    "agentVMNamePrefix": "agent",
-    "agentAvailabilitySet": "agentAvailabilitySet",
-    "appLbName": "appLb",
-    "appNodesLbID": "[resourceId('Microsoft.Network/loadBalancers',variables('appLbName'))]",
-    "appNodesLbIPConfigName": "NodesAppLBFrontEnd",
-    "appNodesLbIPConfigID": "[concat(variables('appNodesLbID'),'/frontendIPConfigurations/', variables('appNodesLbIPConfigName'))]",
-    "appNodesLbBackendPoolName": "node-app-pool",
+    "agentVMNamePrefix": "[concat(variables('orchestratorName'), '-agent-', variables('nameSuffix'), '-')]",
+    "agentAvailabilitySet": "[concat(variables('orchestratorName'), '-agent-availabilitySet-', variables('nameSuffix'))]",
+    "agentsLbName": "[concat(variables('orchestratorName'), '-agent-lb-', variables('nameSuffix'))]",
+    "agentsLbID": "[resourceId('Microsoft.Network/loadBalancers',variables('agentsLbName'))]",
+    "agentsLbIPConfigName": "[concat(variables('orchestratorName'), '-agent-lbFrontEnd-', variables('nameSuffix'))]",
+    "agentsLbIPConfigID": "[concat(variables('agentsLbID'),'/frontendIPConfigurations/', variables('agentsLbIPConfigName'))]",
+    "agentsLbBackendPoolName": "[concat(variables('orchestratorName'), '-agent-pool-', variables('nameSuffix'))]",
     "agentStorageAccountsCount": "[add(div(variables('agentCount'), variables('vmsPerStorageAccount')), mod(add(mod(variables('agentCount'), variables('vmsPerStorageAccount')),2), add(mod(variables('agentCount'), variables('vmsPerStorageAccount')),1)))]",
     "agentsPerIPv4Octet": 200,
     "agentCustomScript": "[concat('/usr/bin/nohup /bin/bash -c \"/bin/bash /opt/azure/containers/configure-mesos-cluster.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/cluster-bootstrap.log 2>&1 &\" &')]"
@@ -226,7 +296,7 @@
 
     {
       "type": "Microsoft.Storage/storageAccounts",
-      "name": "[variables('managementStorageAccountName')]",
+      "name": "[variables('masterStorageAccountName')]",
       "apiVersion": "2015-06-15",
       "location": "[variables('storageLocation')]",
       "properties": {
@@ -264,12 +334,12 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
-      "name": "[variables('managementEndpointDNSNamePrefix')]",
+      "name": "[variables('masterPublicIPAddressName')]",
       "location": "[resourceGroup().location]",
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
         "dnsSettings": {
-          "domainNameLabel": "[variables('managementEndpointDNSNamePrefix')]"
+          "domainNameLabel": "[variables('masterEndpointDNSNamePrefix')]"
         }
       }
     },
@@ -279,7 +349,7 @@
       "type": "Microsoft.Network/loadBalancers",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/publicIPAddresses/', variables('managementEndpointDNSNamePrefix'))]"
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('masterPublicIPAddressName'))]"
       ],
       "properties": {
         "frontendIPConfigurations": [
@@ -287,7 +357,7 @@
             "name": "[variables('masterLbIPConfigName')]",
             "properties": {
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('managementEndpointDNSNamePrefix'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('masterPublicIPAddressName'))]"
               }
             }
           }
@@ -348,7 +418,7 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkInterfaces",
-      "name": "[concat(variables('masterVMNamePrefix'), copyIndex(), '-nic')]",
+      "name": "[concat(variables('masterVMNamePrefix'), 'nic-', copyIndex())]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "nicLoopNode",
@@ -398,9 +468,9 @@
         "count": "[variables('masterCount')]"
       },
       "dependsOn": [
-        "[concat('Microsoft.Network/networkInterfaces/',variables('masterVMNamePrefix'), copyIndex(), '-nic')]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('masterVMNamePrefix'), 'nic-', copyIndex())]",
         "[concat('Microsoft.Compute/availabilitySets/',variables('masterAvailabilitySet'))]",
-        "[variables('managementStorageAccountName')]"
+        "[variables('masterStorageAccountName')]"
       ],
       "properties": {
         "availabilitySet": {
@@ -413,7 +483,8 @@
           "computername": "[concat(variables('masterVMNamePrefix'), copyIndex())]",
           "adminUsername": "[variables('adminUsername')]",
           "adminPassword": "[variables('adminPassword')]",
-          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-mesos-cluster.sh\n    permissions: \"0744\"\n')]"
+          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-mesos-cluster.sh\n    permissions: \"0744\"\n')]",
+          "linuxConfiguration": "[variables('linuxConfiguration')]"
         },
         "storageProfile": {
           "imageReference": {
@@ -425,7 +496,7 @@
           "osDisk": {
             "name": "[concat(variables('masterVMNamePrefix'), copyIndex(),'-osdisk')]",
             "vhd": {
-              "uri": "[concat('http://', variables('managementStorageAccountName'), '.blob.core.windows.net/vhds/', variables('masterVMNamePrefix'), copyIndex(), '-osdisk.vhd')]"
+              "uri": "[concat('http://', variables('masterStorageAccountName'), '.blob.core.windows.net/vhds/', variables('masterVMNamePrefix'), copyIndex(), '-osdisk.vhd')]"
             },
             "caching": "ReadWrite",
             "createOption": "FromImage"
@@ -434,7 +505,7 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('masterVMNamePrefix'), copyIndex(), '-nic'))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('masterVMNamePrefix'), 'nic-', copyIndex()))]"
             }
           ]
         }
@@ -485,37 +556,37 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
-      "name": "[variables('applicationEndpointDNSNamePrefix')]",
+      "name": "[variables('agentPublicIPAddressName')]",
       "location": "[resourceGroup().location]",
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
         "dnsSettings": {
-          "domainNameLabel": "[variables('applicationEndpointDNSNamePrefix')]"
+          "domainNameLabel": "[variables('agentEndpointDNSNamePrefix')]"
         }
       }
     },
     {
       "apiVersion": "2015-06-15",
-      "name": "[variables('appLbName')]",
+      "name": "[variables('agentsLbName')]",
       "type": "Microsoft.Network/loadBalancers",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Network/publicIPAddresses/', variables('applicationEndpointDNSNamePrefix'))]"
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('agentPublicIPAddressName'))]"
       ],
       "properties": {
         "frontendIPConfigurations": [
           {
-            "name": "[variables('appNodesLbIPConfigName')]",
+            "name": "[variables('agentsLbIPConfigName')]",
             "properties": {
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('applicationEndpointDNSNamePrefix'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('agentPublicIPAddressName'))]"
               }
             }
           }
         ],
         "backendAddressPools": [
           {
-            "name": "[variables('appNodesLbBackendPoolName')]"
+            "name": "[variables('agentsLbBackendPoolName')]"
           }
         ],
         "loadBalancingRules": [
@@ -523,10 +594,10 @@
             "name": "LBRuleHTTP",
             "properties": {
               "frontendIPConfiguration": {
-                "id": "[variables('appNodesLbIPConfigID')]"
+                "id": "[variables('agentsLbIPConfigID')]"
               },
               "backendAddressPool": {
-                "id": "[concat(variables('appNodesLbID'), '/backendAddressPools/', variables('appNodesLbBackendPoolName'))]"
+                "id": "[concat(variables('agentsLbID'), '/backendAddressPools/', variables('agentsLbBackendPoolName'))]"
               },
               "protocol": "tcp",
               "frontendPort": 80,
@@ -535,7 +606,7 @@
               "idleTimeoutInMinutes": 5,
               "loadDistribution": "Default",
               "probe": {
-                "id": "[concat(variables('appNodesLbID'),'/probes/tcpHTTPProbe')]"
+                "id": "[concat(variables('agentsLbID'),'/probes/tcpHTTPProbe')]"
               }
             }
           },
@@ -543,10 +614,10 @@
             "name": "LBRuleHTTPS",
             "properties": {
               "frontendIPConfiguration": {
-                "id": "[variables('appNodesLbIPConfigID')]"
+                "id": "[variables('agentsLbIPConfigID')]"
               },
               "backendAddressPool": {
-                "id": "[concat(variables('appNodesLbID'), '/backendAddressPools/', variables('appNodesLbBackendPoolName'))]"
+                "id": "[concat(variables('agentsLbID'), '/backendAddressPools/', variables('agentsLbBackendPoolName'))]"
               },
               "protocol": "tcp",
               "frontendPort": 443,
@@ -555,7 +626,7 @@
               "idleTimeoutInMinutes": 5,
               "loadDistribution": "Default",
               "probe": {
-                "id": "[concat(variables('appNodesLbID'),'/probes/tcpHTTPSProbe')]"
+                "id": "[concat(variables('agentsLbID'),'/probes/tcpHTTPSProbe')]"
               }
             }
           },
@@ -563,10 +634,10 @@
             "name": "LBRulePort8080",
             "properties": {
               "frontendIPConfiguration": {
-                "id": "[variables('appNodesLbIPConfigID')]"
+                "id": "[variables('agentsLbIPConfigID')]"
               },
               "backendAddressPool": {
-                "id": "[concat(variables('appNodesLbID'), '/backendAddressPools/', variables('appNodesLbBackendPoolName'))]"
+                "id": "[concat(variables('agentsLbID'), '/backendAddressPools/', variables('agentsLbBackendPoolName'))]"
               },
               "protocol": "tcp",
               "frontendPort": 8080,
@@ -575,7 +646,7 @@
               "idleTimeoutInMinutes": 5,
               "loadDistribution": "Default",
               "probe": {
-                "id": "[concat(variables('appNodesLbID'),'/probes/tcpPort8080Probe')]"
+                "id": "[concat(variables('agentsLbID'),'/probes/tcpPort8080Probe')]"
               }
             }
           }
@@ -648,7 +719,7 @@
             }
           },
           {
-            "name": "port8080",
+            "name": "Tcp8080",
             "properties": {
               "description": "Allow port 8080",
               "protocol": "Tcp",
@@ -667,14 +738,14 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkInterfaces",
-      "name": "[concat(variables('agentVMNamePrefix'), copyIndex(), '-nic')]",
+      "name": "[concat(variables('agentVMNamePrefix'), 'nic-', copyIndex())]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "nicLoopNode",
         "count": "[variables('agentCount')]"
       },
       "dependsOn": [
-        "[variables('appNodesLbID')]",
+        "[variables('agentsLbID')]",
         "[variables('vnetID')]",
         "[variables('agentNSGID')]"
       ],
@@ -693,7 +764,7 @@
               },
               "loadBalancerBackendAddressPools": [
                 {
-                  "id": "[concat(variables('appNodesLbID'), '/backendAddressPools/', variables('appNodesLbBackendPoolName'))]"
+                  "id": "[concat(variables('agentsLbID'), '/backendAddressPools/', variables('agentsLbBackendPoolName'))]"
                 }
               ]
             }
@@ -712,7 +783,7 @@
       },
       "dependsOn": [
         "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountPrefixes')[mod(div(copyIndex(),variables('vmsPerStorageAccount')),variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(div(copyIndex(),variables('vmsPerStorageAccount')),variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),add(1,div(copyIndex(),variables('vmsPerStorageAccount'))))]",
-        "[concat('Microsoft.Network/networkInterfaces/', variables('agentVMNamePrefix'), copyIndex(), '-nic')]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('agentVMNamePrefix'), 'nic-', copyIndex())]",
         "[concat('Microsoft.Compute/availabilitySets/', variables('agentAvailabilitySet'))]"
       ],
       "properties": {
@@ -726,7 +797,8 @@
           "computername": "[concat(variables('agentVMNamePrefix'), copyIndex())]",
           "adminUsername": "[variables('adminUsername')]",
           "adminPassword": "[variables('adminPassword')]",
-          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-mesos-cluster.sh\n    permissions: \"0744\"\n')]"
+          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-mesos-cluster.sh\n    permissions: \"0744\"\n')]",
+          "linuxConfiguration": "[variables('linuxConfiguration')]"
         },
         "storageProfile": {
           "imageReference": {
@@ -747,7 +819,7 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('agentVMNamePrefix'), copyIndex(), '-nic'))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('agentVMNamePrefix'), 'nic-', copyIndex()))]"
             }
           ]
         }
@@ -783,11 +855,11 @@
     },
     "masterFQDN": {
       "type": "string",
-      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('managementEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
+      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('masterPublicIPAddressName'))).dnsSettings.fqdn]"
     },
-    "applicationFQDN": {
+    "agentFQDN": {
       "type": "string",
-      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('applicationEndpointDNSNamePrefix'))).dnsSettings.fqdn]"
+      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('agentPublicIPAddressName'))).dnsSettings.fqdn]"
     }
   }
 }
