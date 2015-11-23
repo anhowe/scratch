@@ -1,18 +1,15 @@
 {
-  "adminUsername": {
-    "value": "azureuser"
-  },
-  "adminPassword": {
+  "windowsAdminPassword": {
     "value": "password1234$"
   },
-  "jumpboxEndpointDNSName": {
-    "value": "mesosscalablejb1026b"
+  "jumpboxEndpointDNSNamePrefix": {
+    "value": "swarmjb1122g"
   },
-  "managementEndpointDNSName": {
-    "value": "mesosscalablemgmt1026b"
+  "masterEndpointDNSNamePrefix": {
+    "value": "swarmmgmt1122g"
   },
-  "applicationEndpointDNSName": {
-    "value": "mesosscalableapp1026b"
+  "agentEndpointDNSNamePrefix": {
+    "value": "swarmapp1122g"
   },
   "agentCount": {
     "value": 3

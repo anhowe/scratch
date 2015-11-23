@@ -161,7 +161,7 @@
     },
     "nameSuffix": {
       "type": "string",
-      "defaultValue": "",
+      "defaultValue": "a",
       "metadata": {
         "description": "A string to include in the names of resources created.  Defaults to blank."
       }
@@ -185,16 +185,16 @@
     "windowsJumpboxSku": "[parameters('windowsJumpboxSku')]",
     "windowsAdminUsername": "[parameters('windowsAdminUsername')]",
     "windowsAdminPassword": "[parameters('windowsAdminPassword')]",
-    
+
     "nameSuffix": "[parameters('nameSuffix')]",
-   
+
     "isValidation": "[parameters('isValidation')]",
     "storageLocations": [
       "[resourceGroup().location]",
       "East US 2 (Stage)"
     ],
     "storageLocation": "[variables('storageLocations')[variables('isValidation')]]",
-    
+
     "sshKeyPath": "[concat('/home/', variables('adminUsername'), '/.ssh/authorized_keys')]",
     "disablePasswordAuthentication": "[parameters('disablePasswordAuthentication')]",
     "setLinuxConfigurationForVMCreate": "[parameters('setLinuxConfigurationForVMCreate')]",
@@ -213,13 +213,13 @@
         }
     ],
     "linuxConfiguration": "[variables('linuxConfigurations')[variables('setLinuxConfigurationForVMCreate')]]",
-    
+
     "orchestratorName": "mesos",
-    
+
     "masterPublicIPAddressName": "[concat(variables('orchestratorName'), '-master-ip-', variables('masterEndpointDNSNamePrefix'), '-', variables('nameSuffix'))]",
     "agentPublicIPAddressName": "[concat(variables('orchestratorName'), '-agent-ip-', variables('agentEndpointDNSNamePrefix'), '-', variables('nameSuffix'))]",
     "jumpboxPublicIPAddressName": "[concat(variables('orchestratorName'), '-jumpbox-ip-', variables('jumpboxEndpointDNSNamePrefix'), '-', variables('nameSuffix'))]",
-    
+
     "marathonEnabled": true,
     "chronosEnabled": true,
     "swarmEnabled": false,
