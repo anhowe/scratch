@@ -382,7 +382,7 @@
           "id": "[variables('masterLbIPConfigID')]"
         },
         "protocol": "tcp",
-        "frontendPort": "[copyIndex(2211)]",
+        "frontendPort": "[copyIndex(2200)]",
         "backendPort": 22,
         "enableFloatingIP": false
       }

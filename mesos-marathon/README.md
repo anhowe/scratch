@@ -1,17 +1,19 @@
-# Mesos cluster with Marathon and Swarm
+# Clusters with Mesos/Marathon/Chronos or Swarm Orchestrators
 
-This Microsoft Azure template creates an Apache Mesos cluster with Marathon, and Swarm on a configurable number of machines.
+These Microsoft Azure templates create various cluster combinations with Mesos/Marathon/Chronos or Swarm Orchestrators.
 
-Portal Launch Button|Cluster Type
---- | ---
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fmesos-cluster-with-no-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Mesos with no jumpbox
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fmesos-cluster-with-windows-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Mesos with windows jumpbox
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fmesos-cluster-with-linux-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Mesos with linux jumpbox
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fswarm-cluster-with-no-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Swarm Cluster
+Portal Launch Button|Cluster Type|Walkthrough Instructions
+--- | --- | ---
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fmesos-cluster-with-no-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Mesos with no jumpbox|[Mesos Cluster Walkthrough](#mesos-cluster-walkthrough)
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fmesos-cluster-with-windows-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Mesos with windows jumpbox|[Mesos Cluster Walkthrough](#mesos-cluster-walkthrough)
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fmesos-cluster-with-linux-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Mesos with linux jumpbox|[Mesos Cluster Walkthrough](#mesos-cluster-walkthrough)
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fswarm-cluster-with-no-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Swarm Cluster|[Swarm Cluster Walkthrough](#swarm-cluster-walkthrough)
+
+# Mesos Cluster Walkthrough
 
 Once your cluster has been created you will have a resource group containing 3 parts:
 
-1. a set of 1,3,5 masters in a master specific availability set.  Each master's SSH can be accessed via the public dns address at ports 2211..2215
+1. a set of 1,3,5 masters in a master specific availability set.  Each master's SSH can be accessed via the public dns address at ports 2200..2204
 
 2. a set of agents behind in an agent specific availability set.  The agent VMs must be accessed through the master, or jumpbox
 
@@ -31,14 +33,14 @@ You can see the following parts:
 
 All VMs are on the same private subnet, 10.0.0.0/18, and fully accessible to each other.
 
-# Installation Notes
+## Installation Notes
 
 Here are notes for troubleshooting:
  * the installation log for the linux jumpbox, masters, and agents are in /var/log/azure/cluster-bootstrap.log
  * event though the VMs finish quickly Mesos can take 5-15 minutes to install, check /var/log/azure/cluster-bootstrap.log for the completion status.
  * the linux jumpbox is based on https://github.com/anhowe/ubuntu-devbox and will take 1 hour to configure.  Visit https://github.com/anhowe/ubuntu-devbox to learn how to know when setup is completed, and then how to access the desktop via VNC and an SSH tunnel.
 
-# Template Parameters
+## Template Parameters
 When you launch the installation of the cluster, you need to specify the following parameters:
 * `adminPassword`: self-explanatory
 * `jumpboxEndpointDNSName`: this is the public DNS name for the entrypoint that SWARM is going to use to deploy containers in the cluster.
@@ -49,9 +51,9 @@ When you launch the installation of the cluster, you need to specify the followi
 * `agentVMSize`: The type of VM that you want to use for each node in the cluster. The default size is D1 (1 core 3.5GB RAM) but you can change that if you expect to run workloads that require more RAM or CPU resources.
 * `sshRSAPublicKey`: Configure all linux machines with the SSH rsa public key string.  Use 'disabled' to not configure access with SSH rsa public key.
 
-# Mesos Cluster with Marathon Walkthrough
+## Marathon
 
-Before running the walkthrough ensure you have chosen "true" for "marathonEnabled" parameter.  This walk through is based the wonderful digital ocean tutorial: https://www.digitalocean.com/community/tutorials/how-to-configure-a-production-ready-mesosphere-cluster-on-ubuntu-14-04
+This walk through is based the wonderful digital ocean tutorial: https://www.digitalocean.com/community/tutorials/how-to-configure-a-production-ready-mesosphere-cluster-on-ubuntu-14-04
 
 1. Get your endpoints to cluster
  1. browse to https://portal.azure.com
@@ -67,7 +69,7 @@ Before running the walkthrough ensure you have chosen "true" for "marathonEnable
 2. Connect to your cluster
  1. linux jumpbox - start a VNC to the jumpbox using instructions https://github.com/anhowe/ubuntu-devbox.  The jumpbox takes an hour to configure.  If the desktop is not ready, you can tail /var/log/azure/cluster-bootstrap.log to watach installation.
  2. windows jumpbox - remote desktop to the windows jumpbox
- 3. no jumpbox - SSH to port 2211 on your NAT creating a tunnel to port 5050 and port 8080.  Then use the browser of your desktop to browse these ports.
+ 3. no jumpbox - SSH to port 2200 on your NAT creating a tunnel to port 5050 and port 8080.  Then use the browser of your desktop to browse these ports.
 
 3. browse to the Mesos UI http://master0:5050
  1. linux jumpbox - in top right corner choose Applications->Internet->Chrome and browse to http://master0:5050
@@ -109,9 +111,7 @@ Before running the walkthrough ensure you have chosen "true" for "marathonEnable
 
  ![Image of setting up docker application in Marathon](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/marathon-docker.png)
 
-# Chronos Walkthrough
-
-Before running this walkthrough ensure you have created a cluster choosing "true" for the "marathonEnabled" parameter.
+## Chronos Walkthrough
 
 1. from the jumpbox browse to http://master0:4400/, and verify you see the Marathon Web UI:
 
@@ -133,27 +133,45 @@ Before running this walkthrough ensure you have created a cluster choosing "true
 
  ![Image of setting up docker application in Marathon](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/chronos-docker.png)
 
-# Swarm Walkthrough
+ # Swarm Cluster Walkthrough
 
-Before running this walkthrough ensure you have created a cluster choosing "true" for the "swarmEnabled" parameter.
+ Once your cluster has been created you will have a resource group containing 2 parts:
 
-1. from the jumpbox browse to http://master0:5050/#/frameworks, and verify Swarm is working:
+ 1. a set of 1,3,5 masters in a master specific availability set.  Each master's SSH can be accessed via the public dns address at ports 2200..2204
 
- ![Image of the Swarm framework in Mesos](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/swarm-framework.png)
+ 2. a set of agents behind in an agent specific availability set.  The agent VMs must be accessed through the master.
 
-2. SSH to the master from the jumpbox or hitting port 2211 on the public IP
+  The following image is an example of a cluster with 3 masters, and 3 agents:
 
-3. Run "sudo docker ps" and observe that Swarm is working
+ ![Image of Swarm cluster on azure](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/swarm.png)
 
-4. Run "sudo docker -H tcp://0.0.0.0:2376 ps" and see there are no jobs
+ All VMs are on the same private subnet, 10.0.0.0/18, and fully accessible to each other.
 
-5. Run "sudo docker -H tcp://0.0.0.0:2376 run hello-world" and notice the error about resource contraints.  Now add the constraints by running "sudo docker -H tcp://0.0.0.0:2376 run -m 256m hello-world" and watch it run.
+## Explore Swarm with Simple hello world
+ 1. After successfully deploying the template write down the two output master and agent FQDNs.
+ 2. SSH to port 2200 of the master FQDN
+ 3. Type `docker -H 10.0.0.5:2375 info` to see the status of the agent nodes.
+ ![Image of docker info](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/dockerinfo.png)
+ 4. Type `docker -H 10.0.0.5:2375 run hello-world` to see the hello-world test app run on one of the agents
 
-6. Run "sudo docker -H tcp://0.0.0.0:2376 ps -a" and see the hello-world that has just run
-
-7. Browse to http://master0:5050/, and see the "hello-world" process that has just completed.  Browse to Log:
-
- ![Image of docker hello world using Swarm](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/completed-hello-world.png)
+## Explore Swarm with a web-based Compose Script, then scale the script to all agents
+ 1. After successfully deploying the template write down the two output master and agent FQDNs.
+ 2. create the following docker-compose.yml file with the following content:
+```
+web:
+  image: "yeasy/simple-web"
+  ports:
+    - "80:80"
+  restart: "always"
+```
+ 3.  type `export DOCKER_HOST=10.0.0.5:2375` so that docker-compose automatically hits the swarm endpoints
+ 4. type `docker-compose up -d` to create the simple web server.  this will take about a minute to pull the image
+ 5. once completed, type `docker ps` to see the running image.
+ ![Image of docker ps](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/dockerps.png)
+ 6. in your web browser hit the agent FQDN endpoint you recorded in step #1 and you should see the following page, with a counter that increases on each refresh.
+ ![Image of the web page](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/swarmbrowser.png)
+ 7. You can now scale the web application by typing `docker-compose scale web=3`, and this will scale to the rest of your agents.  The Azure load balancer will automatically pick up the new containers.
+ ![Image of docker scaling](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/dockercomposescale.png)
 
 # Sample Workloads
 
@@ -164,7 +182,7 @@ Try the following workloads to test your new mesos cluster.  Run these on Marath
 2. **Mount Azure Files volume within Docker Container** - [docker run --privileged anhowe/azure-file-workload STORAGEACCOUNTNAME STORAGEACCOUNTKEY SHARENAME](https://github.com/anhowe/azure-file-workload) - From each container mount your Azure storage by using Azure files
 
 # Questions
-**Q.** Why is there a jumpbox?
+**Q.** Why is there a jumpbox for the mesos Cluster?
 
 **A.** The jumpbox is used for easy troubleshooting on the private subnet.  The Mesos Web UI requires access to all machines.  Also the web UI.  You could also consider using OpenVPN to access the private subnet.
 
