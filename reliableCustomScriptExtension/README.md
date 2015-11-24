@@ -1,4 +1,4 @@
-# Linux VM that takes SSH key
+# Reliable Script Execution
 
 This demonstrates a Linux VM that uses customData to write files, and then the custom script extension to execute them.
 
