@@ -93,7 +93,7 @@ if __name__ == "__main__":
     # Parse Arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("-o", "--output_directory",  help="Directory to write templates files to.  Default is current directory.")
-    parser.add_argument("-wapf", "--write_parameter_files", help="Write separate parameter file for each template.  Default is false.",
+    parser.add_argument("-wpf", "--write_parameter_files", help="Write separate parameter file for each template.  Default is false.",
                         action="store_true" )
 
     args = parser.parse_args()
@@ -148,6 +148,7 @@ if __name__ == "__main__":
 
     # Write parameter files if specified
     if (args.write_parameter_files == True) :
-        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, ARM_OUTPUT_TEMPLATE.replace(".json", ".parameters.json") )
-        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, ARM_OUTPUT_TEMPLATE_LINUX_JUMPBOX.replace(".json", ".parameters.json") )
-        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, ARM_OUTPUT_TEMPLATE_WINDOWS_JUMPBOX.replace(".json", ".parameters.json") )
+        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, os.path.join(args.output_directory, ARM_OUTPUT_TEMPLATE).replace(".json", ".parameters.json") )
+        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, os.path.join(args.output_directory, ARM_OUTPUT_TEMPLATE_LINUX_JUMPBOX).replace(".json", ".parameters.json") )
+        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, os.path.join(args.output_directory, ARM_OUTPUT_TEMPLATE_WINDOWS_JUMPBOX).replace(".json", ".parameters.json") )
+        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, os.path.join(args.output_directory, ARM_OUTPUT_SWARM_TEMPLATE).replace(".json", ".parameters.json") )
