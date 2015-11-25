@@ -23,7 +23,7 @@
         "Linux"
       ],
       "metadata": {
-        "description": "The size of the Virtual Machine. Allowable machine values are 1 core (A1), 2 core (A2), 4 core (A3), 8 core (A4)."
+        "description": "The type of OS for the Jumpbox"
       }
     },
     "jumpboxEndpointDNSNamePrefix": {
