@@ -254,7 +254,7 @@
     "jumpboxNSGName": "[concat(variables('orchestratorName'), '-jumpbox-nsg-', variables('nameSuffix'))]",
     "jumpboxNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('jumpboxNSGName'))]",
     "jumpboxAddr": 4,
-    "jumpboxVMName": "[concat('winjb-', variables('nameSuffix'))]",
+    "jumpboxVMName": "[concat('jb-', variables('nameSuffix'))]",
     "jumpboxVMSize": "Standard_A1",
 
     "jumpboxLinuxInstallParameters": "[concat(variables('adminUsername'), variables('sshQuotedString'))]",
