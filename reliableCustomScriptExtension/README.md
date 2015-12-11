@@ -24,6 +24,7 @@ Write your shell scripts with “ensureAzureNetwork()” at beginning to protect
 #######################################
 ensureAzureNetwork()
 {
+  VMNAME=`hostname`
   # ensure the host name is resolvable
   hostResolveHealthy=1
   for i in {1..120}; do
