@@ -90,7 +90,7 @@
             "publisher": "[variables('linuxPublisher')]",
             "offer": "[variables('linuxOffer')]",
             "sku": "[variables('linuxSku')]",
-            "version": "latest"
+            "version": "[variables('linuxVersion')]"
           },
           "osDisk": {
             "name": "[concat(variables('jumpboxVMName'),'-osdisk')]",

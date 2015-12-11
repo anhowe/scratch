@@ -32,7 +32,7 @@ set +x
 ACCOUNTKEY=${8}
 set -x
 AZUREUSER=${9}
-SSHKEY=${10}
+POSTINSTALLSCRIPTURI=${10}
 HOMEDIR="/home/$AZUREUSER"
 VMNAME=`hostname`
 VMNUMBER=`echo $VMNAME | sed 's/.*[^0-9]\([0-9]\+\)*$/\1/'`
@@ -47,27 +47,6 @@ echo "VMNUMBER: $VMNUMBER, VMPREFIX: $VMPREFIX"
 echo "SWARMENABLED: $SWARMENABLED, MARATHONENABLED: $MARATHONENABLED, CHRONOSENABLED: $CHRONOSENABLED"
 echo "ACCOUNTNAME: $ACCOUNTNAME"
 echo "BASESUBNET: $BASESUBNET"
-
-###################
-# setup ssh access
-###################
-
-SSHDIR=$HOMEDIR/.ssh
-AUTHFILE=$SSHDIR/authorized_keys
-if [ `echo $SSHKEY | sed 's/^\(ssh-rsa \).*/\1/'` == "ssh-rsa" ] ; then
-  if [ ! -d $SSHDIR ] ; then
-    sudo -i -u $AZUREUSER mkdir $SSHDIR
-    sudo -i -u $AZUREUSER chmod 700 $SSHDIR
-  fi
-
-  if [ ! -e $AUTHFILE ] ; then
-    sudo -i -u $AZUREUSER touch $AUTHFILE
-    sudo -i -u $AZUREUSER chmod 600 $AUTHFILE
-  fi
-  echo $SSHKEY | sudo -i -u $AZUREUSER tee -a $AUTHFILE
-else
-  echo "no valid key data"
-fi
 
 ###################
 # Common Functions
@@ -109,12 +88,12 @@ ensureAzureNetwork()
   done
   if [ $networkHealthy -ne 0 ]
   then
-    echo "the network is not healthy, aborting install"
+    echo "the network is not healthy, cannot download from bing, aborting install"
     ifconfig
     ip a
     exit 2
   fi
-  # ensure the host ip can resolve
+  # ensure the hostname -i works
   networkHealthy=1
   for i in {1..120}; do
     hostname -i
@@ -130,6 +109,26 @@ ensureAzureNetwork()
   if [ $networkHealthy -ne 0 ]
   then
     echo "the network is not healthy, cannot resolve ip address, aborting install"
+    ifconfig
+    ip a
+    exit 2
+  fi
+  # ensure hostname -f works
+  networkHealthy=1
+  for i in {1..120}; do
+    hostname -f
+    if [ $? -eq 0 ]
+    then
+      # hostname has been found continue
+      networkHealthy=0
+      echo "the network is healthy"
+      break
+    fi
+    sleep 1
+  done
+  if [ $networkHealthy -ne 0 ]
+  then
+    echo "the network is not healthy, cannot resolve hostname, aborting install"
     ifconfig
     ip a
     exit 2
@@ -214,12 +213,25 @@ echo "$HOSTADDR $VMNAME" | sudo tee -a /etc/hosts
 ################
 
 echo "Installing and configuring docker and swarm"
+installDocker()
+{
+  for i in {1..10}; do
+    wget --tries 4 --retry-connrefused --waitretry=15 -qO- https://get.docker.com | sh
+    if [ $? -eq 0 ]
+    then
+      # hostname has been found continue
+      echo "Docker installed successfully"
+      break
+    fi
+    sleep 10
+  done
+}
+time installDocker
 
-time wget -qO- https://get.docker.com | sh
 sudo usermod -aG docker $AZUREUSER
 if isagent ; then
   # Start Docker and listen on :2375 (no auth, but in vnet)
-  echo 'DOCKER_OPTS="-H unix:///var/run/docker.sock -H 0.0.0.0:2375"' | sudo tee /etc/default/docker
+  echo 'DOCKER_OPTS="-H unix:///var/run/docker.sock -H 0.0.0.0:2375"' | sudo tee -a /etc/default/docker
 fi
 
 if isomsrequired ; then
@@ -379,18 +391,14 @@ if isagent ; then
   hostname -i | sudo tee /etc/mesos-slave/ip
   hostname | sudo tee /etc/mesos-slave/hostname
 
-  # Add mesos-dns IP addresses at the top of resolv.conf
-  RESOLV_TMP=resolv.conf.temp
-  rm -f $RESOLV_TMP
+  # Add mesos-dns IP addresses to the head file, so they are at the top of the file
   for i in `seq 0 $((MASTERCOUNT-1))` ;
   do
       MASTEROCTET=`expr $MASTERFIRSTADDR + $i`
       IPADDR="${BASESUBNET}${MASTEROCTET}"
-      echo nameserver $IPADDR >> $RESOLV_TMP
+      echo nameserver $IPADDR | sudo tee -a /etc/resolvconf/resolv.conf.d/head
   done
-
-  cat /etc/resolv.conf >> $RESOLV_TMP
-  mv $RESOLV_TMP /etc/resolv.conf
+  service resolvconf restart
 fi
 
 ##############################################
@@ -446,7 +454,13 @@ if ismaster && [ "$SWARMENABLED" == "true" ] && [ $VMNUMBER -eq "0" ]; then
   sudo docker ps
   echo "completed starting docker swarm"
 fi
-echo "processes at end of script"
+
+if [ $POSTINSTALLSCRIPTURI != "disabled" ]
+then
+  echo "downloading, and kicking off post install script"
+  /bin/bash -c "wget --tries 20 --retry-connrefused --waitretry=15 -qO- $POSTINSTALLSCRIPTURI | nohup /bin/bash >> /var/log/azure/cluster-bootstrap-postinstall.log 2>&1 &"
+fi
+
 ps ax
 echo "Finished installing and configuring docker and swarm"
 date

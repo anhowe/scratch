@@ -116,6 +116,13 @@
         "description": "This is the linux sku used by the linux cluster"
       }
     },
+    "linuxVersion": {
+      "type": "string",
+      "defaultValue": "latest",
+      "metadata": {
+        "description": "This is the linux version used by the linux cluster"
+      }
+    },
     "windowsJumpboxPublisher": {
       "type": "string",
       "defaultValue": "MicrosoftVisualStudio",
@@ -166,6 +173,13 @@
       "metadata": {
         "description": "A string to include in the names of resources created.  Defaults to 0.  Can not be blank."
       }
+    },
+    "vmsPerStorageAccount": {
+      "type": "int",
+      "defaultValue": 5,
+      "metadata": {
+        "description": "This specifies the number of VMs per storage accounts"
+      }
     }
   },
   "variables": {
@@ -181,11 +195,13 @@
     "linuxPublisher": "[parameters('linuxPublisher')]",
     "linuxOffer": "[parameters('linuxOffer')]",
     "linuxSku": "[parameters('linuxSku')]",
+    "linuxVersion": "[parameters('linuxVersion')]",
     "windowsJumpboxPublisher": "[parameters('windowsJumpboxPublisher')]",
     "windowsJumpboxOffer": "[parameters('windowsJumpboxOffer')]",
     "windowsJumpboxSku": "[parameters('windowsJumpboxSku')]",
     "windowsAdminUsername": "[parameters('windowsAdminUsername')]",
     "windowsAdminPassword": "[parameters('windowsAdminPassword')]",
+    "vmsPerStorageAccount": "[parameters('vmsPerStorageAccount')]",
 
     "nameSuffix": "[parameters('nameSuffix')]",
 
@@ -224,7 +240,7 @@
     "osImagePublisher": "[variables('linuxPublisher')]",
     "osImageOffer": "[variables('linuxOffer')]",
     "osImageSKU": "[variables('linuxSku')]",
-    "osImageVersion": "latest",
+    "osImageVersion": "[variables('linuxVersion')]",
 
     "virtualNetworkName": "[concat(variables('orchestratorName'), '-vnet-', variables('nameSuffix'))]",
     "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
@@ -239,15 +255,12 @@
       "4","a","g","m","s","y","5","b","h","n","t","z"
     ],
     "storageAccountPrefixesCount": "[length(variables('storageAccountPrefixes'))]",
-    "vmsPerStorageAccount": 10,
     "storageAccountBaseName": "[concat(uniqueString(variables('masterEndpointDNSNamePrefix')), variables('orchestratorName'))]",
     "masterStorageAccountName": "[concat(variables('storageAccountBaseName'), '0')]",
     "omsStorageAccount": "none",
     "omsStorageAccountKey": "none",
-    "postInstallScriptURI": "disabled",
-    "singleQuote": "'",
-    "sshQuotedString": "[concat(' ', variables('singleQuote'), 'disabled', variables('singleQuote'), ' ')]",
-    "clusterInstallParameters": "[concat(variables('masterCount'), ' ',variables('masterVMNamePrefix'), ' ',variables('masterFirstAddr'), ' ',variables('adminUsername'))]",
+    "postInstallScriptURI": "https://raw.githubusercontent.com/anhowe/scratch/master/reliableCustomScriptExtension/helloworld.sh",
+    "clusterInstallParameters": "[concat(variables('masterCount'), ' ',variables('masterVMNamePrefix'), ' ',variables('masterFirstAddr'), ' ',variables('adminUsername'),' ',variables('postInstallScriptURI'))]",
 
     "jumpboxNSGName": "[concat(variables('orchestratorName'), '-jumpbox-nsg-', variables('nameSuffix'))]",
     "jumpboxNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('jumpboxNSGName'))]",
@@ -255,7 +268,7 @@
     "jumpboxVMName": "[concat(variables('orchestratorName'), '-jumpbox-', variables('nameSuffix'))]",
     "jumpboxVMSize": "Standard_A1",
 
-    "jumpboxLinuxInstallParameters": "[concat(variables('adminUsername'), variables('sshQuotedString'))]",
+    "jumpboxLinuxInstallParameters": "[concat(variables('adminUsername'))]",
     "jumpboxLinuxCustomScript": "[concat('/usr/bin/nohup /bin/bash -c \"/bin/bash /opt/azure/containers/configure-ubuntu.sh ',variables('jumpboxLinuxInstallParameters'),' >> /var/log/azure/jumpbox-bootstrap.log 2>&1 &\" &')]",
 
     "setBrowserFirstTabDefaultPrefix": "powershell.exe -ExecutionPolicy Unrestricted -command \"New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer' ; New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\BrowserEmulation' ; New-ItemProperty -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\BrowserEmulation' -Name IntranetCompatibilityMode -Value 0 -Type DWord; New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Main' ; New-ItemProperty -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Main' -Name 'Start Page' -Type String -Value http://\"",

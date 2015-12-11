@@ -5,7 +5,6 @@
 #######################################
 ensureAzureNetwork()
 {
-  VMNAME=`hostname`
   # ensure the host name is resolvable
   hostResolveHealthy=1
   for i in {1..120}; do
@@ -40,7 +39,47 @@ ensureAzureNetwork()
   done
   if [ $networkHealthy -ne 0 ]
   then
-    echo "the network is not healthy, aborting install"
+    echo "the network is not healthy, cannot download from bing, aborting install"
+    ifconfig
+    ip a
+    exit 2
+  fi
+  # ensure the hostname -i works
+  networkHealthy=1
+  for i in {1..120}; do
+    hostname -i
+    if [ $? -eq 0 ]
+    then
+      # hostname has been found continue
+      networkHealthy=0
+      echo "the network is healthy"
+      break
+    fi
+    sleep 1
+  done
+  if [ $networkHealthy -ne 0 ]
+  then
+    echo "the network is not healthy, cannot resolve ip address, aborting install"
+    ifconfig
+    ip a
+    exit 2
+  fi
+  # ensure hostname -f works
+  networkHealthy=1
+  for i in {1..120}; do
+    hostname -f
+    if [ $? -eq 0 ]
+    then
+      # hostname has been found continue
+      networkHealthy=0
+      echo "the network is healthy"
+      break
+    fi
+    sleep 1
+  done
+  if [ $networkHealthy -ne 0 ]
+  then
+    echo "the network is not healthy, cannot resolve hostname, aborting install"
     ifconfig
     ip a
     exit 2

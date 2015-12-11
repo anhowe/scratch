@@ -25,6 +25,7 @@ MASTERCOUNT=${1}
 MASTERPREFIX=${2}
 MASTERFIRSTADDR=${3}
 AZUREUSER=${4}
+POSTINSTALLSCRIPTURI=${5}
 VMNAME=`hostname`
 VMNUMBER=`echo $VMNAME | sed 's/.*[^0-9]\([0-9]\+\)*$/\1/'`
 VMPREFIX=`echo $VMNAME | sed 's/\(.*[^0-9]\)*[0-9]\+$/\1/'`
@@ -144,11 +145,24 @@ echo "$HOSTADDR $VMNAME" | sudo tee -a /etc/hosts
 
 echo "Installing and configuring docker"
 
-time wget -qO- https://get.docker.com | sh
+installDocker()
+{
+  for i in {1..10}; do
+    wget --tries 4 --retry-connrefused --waitretry=15 -qO- https://get.docker.com | sh
+    if [ $? -eq 0 ]
+    then
+      # hostname has been found continue
+      echo "Docker installed successfully"
+      break
+    fi
+    sleep 10
+  done
+}
+time installDocker
 sudo usermod -aG docker $AZUREUSER
 if isagent ; then
   # Start Docker and listen on :2375 (no auth, but in vnet)
-  echo 'DOCKER_OPTS="-H unix:///var/run/docker.sock -H 0.0.0.0:2375"' | sudo tee /etc/default/docker
+  echo 'DOCKER_OPTS="-H unix:///var/run/docker.sock -H 0.0.0.0:2375"' | sudo tee -a /etc/default/docker
 fi
 
 echo "Installing docker compose"
@@ -256,6 +270,12 @@ if isagent ; then
   docker-compose up -d
   popd
   echo "completed starting docker swarm on the agent"
+fi
+
+if [ $POSTINSTALLSCRIPTURI != "disabled" ]
+then
+  echo "downloading, and kicking off post install script"
+  /bin/bash -c "wget --tries 20 --retry-connrefused --waitretry=15 -qO- $POSTINSTALLSCRIPTURI | nohup /bin/bash >> /var/log/azure/cluster-bootstrap-postinstall.log 2>&1 &"
 fi
 
 echo "processes at end of script"

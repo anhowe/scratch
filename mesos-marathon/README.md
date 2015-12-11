@@ -181,6 +181,8 @@ Try the following workloads to test your new mesos cluster.  Run these on Marath
 
 2. **Mount Azure Files volume within Docker Container** - [docker run --privileged anhowe/azure-file-workload STORAGEACCOUNTNAME STORAGEACCOUNTKEY SHARENAME](https://github.com/anhowe/azure-file-workload) - From each container mount your Azure storage by using Azure files
 
+3. **Explore Docker Hub** - explore Docker Hub for 100,000+ different container workloads: https://hub.docker.com/explore/
+
 # Questions
 **Q.** Why is there a jumpbox for the mesos Cluster?
 

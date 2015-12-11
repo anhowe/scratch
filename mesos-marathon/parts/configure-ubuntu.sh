@@ -11,33 +11,11 @@ ps axjf
 #############
 
 AZUREUSER=$1
-SSHKEY=$2
 HOMEDIR="/home/$AZUREUSER"
 VMNAME=`hostname`
 echo "User: $AZUREUSER"
 echo "User home dir: $HOMEDIR"
 echo "vmname: $VMNAME"
-
-###################
-# setup ssh access
-###################
-
-SSHDIR=$HOMEDIR/.ssh
-AUTHFILE=$SSHDIR/authorized_keys
-if [ `echo $SSHKEY | sed 's/^\(ssh-rsa \).*/\1/'` == "ssh-rsa" ] ; then
-  if [ ! -d $SSHDIR ] ; then
-    sudo -i -u $AZUREUSER mkdir $SSHDIR
-    sudo -i -u $AZUREUSER chmod 700 $SSHDIR
-  fi
-
-  if [ ! -e $AUTHFILE ] ; then
-    sudo -i -u $AZUREUSER touch $AUTHFILE
-    sudo -i -u $AZUREUSER chmod 600 $AUTHFILE
-  fi
-  echo $SSHKEY | sudo -i -u $AZUREUSER tee -a $AUTHFILE
-else
-  echo "no valid key data"
-fi
 
 ###################
 # Common Functions
@@ -93,7 +71,20 @@ ensureAzureNetwork
 
 echo "Installing and configuring docker and swarm"
 
-time wget -qO- https://get.docker.com | sh
+installDocker()
+{
+  for i in {1..10}; do
+    wget --tries 4 --retry-connrefused --waitretry=15 -qO- https://get.docker.com | sh
+    if [ $? -eq 0 ]
+    then
+      # hostname has been found continue
+      echo "Docker installed successfully"
+      break
+    fi
+    sleep 10
+  done
+}
+time installDocker
 sudo usermod -aG docker $AZUREUSER
 sudo service docker restart
 
