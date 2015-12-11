@@ -179,6 +179,13 @@
       "metadata": {
         "description": "This specifies the number of VMs per storage accounts"
       }
+    },
+    "postInstallScriptURI": {
+      "type": "string",
+      "defaultValue": "disabled",
+      "metadata": {
+        "description": "After installation, this specifies a script to download and install.  To disabled, set value to 'disabled'."
+      }
     }
   },
   "variables": {
@@ -201,6 +208,7 @@
     "windowsAdminUsername": "[parameters('windowsAdminUsername')]",
     "windowsAdminPassword": "[parameters('windowsAdminPassword')]",
     "vmsPerStorageAccount": "[parameters('vmsPerStorageAccount')]",
+    "postInstallScriptURI": "[parameters('postInstallScriptURI')]",
 
     "nameSuffix": "[parameters('nameSuffix')]",
 
@@ -261,7 +269,6 @@
     "masterStorageAccountName": "[concat(variables('storageAccountBaseName'), '0')]",
     "omsStorageAccount": "none",
     "omsStorageAccountKey": "none",
-    "postInstallScriptURI": "https://raw.githubusercontent.com/anhowe/scratch/master/reliableCustomScriptExtension/helloworld.sh",
     "clusterInstallParameters": "[concat(variables('masterCount'), ' ',variables('masterVMNamePrefix'), ' ',variables('masterFirstAddr'), ' ',variables('swarmEnabled'),' ',variables('marathonEnabled'),' ',variables('chronosEnabled'),' ',variables('omsStorageAccount'),' ',variables('omsStorageAccountKey'),' ', variables('adminUsername'),' ',variables('postInstallScriptURI'))]",
 
     "jumpboxNSGName": "[concat(variables('orchestratorName'), '-jumpbox-nsg-', variables('nameSuffix'))]",
