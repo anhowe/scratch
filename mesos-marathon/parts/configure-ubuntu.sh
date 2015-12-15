@@ -11,15 +11,23 @@ ps axjf
 #############
 
 AZUREUSER=$1
+MASTERCOUNT=$3
+MASTERINITIALADDR=$2
 HOMEDIR="/home/$AZUREUSER"
 VMNAME=`hostname`
 echo "User: $AZUREUSER"
 echo "User home dir: $HOMEDIR"
 echo "vmname: $VMNAME"
+echo "Num of Masters:$MASTERCOUNT"
+echo "Master Initial Addr: $MASTERINITIALADDR"
+
 
 ###################
 # Common Functions
 ###################
+
+#grant access to azure directory to check jumpbox-bootstrap.log file
+sudo chmod 777 /var/log/azure/
 
 ensureAzureNetwork()
 {
@@ -71,21 +79,12 @@ ensureAzureNetwork
 
 echo "Installing and configuring docker and swarm"
 
-installDocker()
-{
-  for i in {1..10}; do
-    wget --tries 4 --retry-connrefused --waitretry=15 -qO- https://get.docker.com | sh
-    if [ $? -eq 0 ]
-    then
-      # hostname has been found continue
-      echo "Docker installed successfully"
-      break
-    fi
-    sleep 10
-  done
-}
-time installDocker
-sudo usermod -aG docker $AZUREUSER
+time wget -qO- https://get.docker.com | sh
+
+# Start Docker and listen on :2375 (no auth, but in vnet)
+echo 'DOCKER_OPTS="-H unix:///var/run/docker.sock -H 0.0.0.0:2375"' | sudo tee /etc/default/docker
+# the following insecure registry is for OMS
+echo 'DOCKER_OPTS="$DOCKER_OPTS --insecure-registry 137.135.93.9"' | sudo tee -a /etc/default/docker
 sudo service docker restart
 
 ensureDocker()
@@ -182,5 +181,41 @@ time wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.
 time sudo dpkg -i google-chrome-stable_current_amd64.deb
 time sudo apt-get -y --force-yes install -f
 time rm /tmp/google-chrome-stable_current_amd64.deb
+
+###################
+# Install Java 
+###################
+sudo apt-get -y install openjdk-7-jre-headless
+
+###################
+# Install pip & setup dcos directory 
+###################
+sudo apt-get install -y python-pip
+
+sudo pip install virtualenv
+
+mkdir $HOMEDIR/dcos
+sudo chown $AZUREUSER $HOMEDIR/dcos
+cd $HOMEDIR/dcos
+curl -O  https://downloads.mesosphere.io/dcos-cli/install.sh
+chmod +x ./install.sh
+sudo chown $AZUREUSER ./install.sh
+
+
+########################################
+# generate nameserver IPs for resolvconf/resolv.conf.d/head file
+# for mesos_dns so service names can be resolve from the jumpbox as well
+########################################
+
+ for ((i=MASTERINITIALADDR; i<MASTERINITIALADDR+MASTERCOUNT; i++)); do
+    echo "nameserver 10.0.0.$i" | sudo tee -a /etc/resolvconf/resolv.conf.d/head
+  done
+echo "/etc/resolvconf/resolv.conf.d/head"  
+cat   /etc/resolvconf/resolv.conf.d/head
+sudo service resolvconf restart
+
+# AZUREUSER can run docker without sudo
+sudo usermod -aG docker $AZUREUSER
+
 date
 echo "completed ubuntu devbox install on pid $$"
