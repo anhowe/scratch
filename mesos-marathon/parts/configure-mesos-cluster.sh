@@ -17,6 +17,7 @@ date
 ps ax
 
 SWARM_VERSION="ahmet/swarm:1.0.0-zk-hotfix"
+MESOS_DNS_VERSION="0.5.1"
 #############
 # Parameters
 #############
@@ -340,9 +341,9 @@ fi
 if ismaster ; then
   # Download and install mesos-dns
   sudo mkdir -p /usr/local/mesos-dns
-  sudo wget https://github.com/mesosphere/mesos-dns/releases/download/v0.2.0/mesos-dns-v0.2.0-linux-amd64.tgz
-  sudo tar zxvf mesos-dns-v0.2.0-linux-amd64.tgz
-  sudo mv mesos-dns-v0.2.0-linux-amd64 /usr/local/mesos-dns/mesos-dns
+  sudo wget https://github.com/mesosphere/mesos-dns/releases/download/v$MESOS_DNS_VERSION/mesos-dns-v$MESOS_DNS_VERSION-linux-amd64
+  sudo mv mesos-dns-v$MESOS_DNS_VERSION-linux-amd64 /usr/local/mesos-dns/mesos-dns
+  sudo chmod +x /usr/local/mesos-dns/mesos-dns
   RESOLVER=`cat /etc/resolv.conf | grep nameserver | tail -n 1 | awk '{print $2}'`
 
   echo "
@@ -390,16 +391,17 @@ if isagent ; then
   fi
   hostname -i | sudo tee /etc/mesos-slave/ip
   hostname | sudo tee /etc/mesos-slave/hostname
-
-  # Add mesos-dns IP addresses to the head file, so they are at the top of the file
-  for i in `seq 0 $((MASTERCOUNT-1))` ;
-  do
-      MASTEROCTET=`expr $MASTERFIRSTADDR + $i`
-      IPADDR="${BASESUBNET}${MASTEROCTET}"
-      echo nameserver $IPADDR | sudo tee -a /etc/resolvconf/resolv.conf.d/head
-  done
-  service resolvconf restart
 fi
+# Add mesos-dns IP addresses to the head file, so they are at the top of the file
+for i in `seq 0 $((MASTERCOUNT-1))` ;
+do
+    MASTEROCTET=`expr $MASTERFIRSTADDR + $i`
+    IPADDR="${BASESUBNET}${MASTEROCTET}"
+    echo nameserver $IPADDR | sudo tee -a /etc/resolvconf/resolv.conf.d/head
+    
+done
+cat /etc/resolvconf/resolv.conf.d/head
+sudo service resolvconf restart
 
 ##############################################
 # configure init rules restart all processes
