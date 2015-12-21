@@ -11,16 +11,15 @@ ps axjf
 #############
 
 AZUREUSER=$1
-MASTERCOUNT=$2 
-MASTERFIRSTADDR=$3  
+MASTERCOUNT=$2
+MASTERFIRSTADDR=$3
 HOMEDIR="/home/$AZUREUSER"
 VMNAME=`hostname`
 echo "User: $AZUREUSER"
 echo "User home dir: $HOMEDIR"
 echo "vmname: $VMNAME"
-echo "Num of Masters:$MASTERCOUNT"  
-echo "Master Initial Addr: $MASTERFIRSTADDR"  
-
+echo "Num of Masters:$MASTERCOUNT"
+echo "Master Initial Addr: $MASTERFIRSTADDR"
 
 ###################
 # Common Functions
@@ -108,6 +107,7 @@ ensureAzureNetwork()
     exit 2
   fi
 }
+
 ensureAzureNetwork
 
 ################
@@ -129,8 +129,9 @@ installDocker()
     sleep 10
   done
 }
+
 time installDocker
-# AZUREUSER can run docker without sudo  
+# AZUREUSER can run docker without sudo
 sudo usermod -aG docker $AZUREUSER
 sudo service docker restart
 
@@ -155,6 +156,7 @@ ensureDocker()
     echo "Docker is not healthy"
   fi
 }
+
 ensureDocker
 
 ###################################################
@@ -229,27 +231,16 @@ time sudo dpkg -i google-chrome-stable_current_amd64.deb
 time sudo apt-get -y --force-yes install -f
 time rm /tmp/google-chrome-stable_current_amd64.deb
 
-################### 
-# Install Java   
-###################  
-sudo apt-get -y install openjdk-7-jre-headless  
-
-###################  
-# Install pip & setup dcos directory   
-###################  
-sudo apt-get install -y python-pip  
-sudo pip install virtualenv  
-mkdir $HOMEDIR/dcos  
-sudo chown $AZUREUSER $HOMEDIR/dcos  
-cd $HOMEDIR/dcos
-
-###################  
+###################
 # Install Mesos DCOS CLI
-###################  
+###################
 installMesosDCOSCLI()
 {
+  sudo DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes install -y python-pip openjdk-7-jre-headless
+  sudo pip install virtualenv
+  sudo -i -u $AZUREUSER mkdir $HOMEDIR/dcos
   for i in {1..10}; do
-    wget --tries 4 --retry-connrefused --waitretry=15 -qO- https://downloads.mesosphere.io/dcos-cli/install.sh | sh
+    wget --tries 4 --retry-connrefused --waitretry=15 -qO- https://raw.githubusercontent.com/mesosphere/dcos-cli/master/bin/install/install-optout-dcos-cli.sh | sudo -i -u $AZUREUSER /bin/bash -s $HOMEDIR/dcos/. http://leader.mesos --add-path yes
     if [ $? -eq 0 ]
     then
       echo "Mesos DCOS-CLI installed successfully"
@@ -260,17 +251,17 @@ installMesosDCOSCLI()
 }
 
 time installMesosDCOSCLI
-  
+
 ########################################  
-# generate nameserver IPs for resolvconf/resolv.conf.d/head file  
-# for mesos_dns so service names can be resolve from the jumpbox as well  
-########################################    
-for ((i=MASTERFIRSTADDR; i<MASTERFIRSTADDR+MASTERCOUNT; i++)); do  
-	echo "nameserver 10.0.0.$i" | sudo tee -a /etc/resolvconf/resolv.conf.d/head  
-done  
-echo "/etc/resolvconf/resolv.conf.d/head"    
-cat   /etc/resolvconf/resolv.conf.d/head  
-sudo service resolvconf restart  
+# generate nameserver IPs for resolvconf/resolv.conf.d/head file
+# for mesos_dns so service names can be resolve from the jumpbox as well
+########################################
+for ((i=MASTERFIRSTADDR; i<MASTERFIRSTADDR+MASTERCOUNT; i++)); do
+	echo "nameserver 10.0.0.$i" | sudo tee -a /etc/resolvconf/resolv.conf.d/head
+done
+echo "/etc/resolvconf/resolv.conf.d/head"
+cat   /etc/resolvconf/resolv.conf.d/head
+sudo service resolvconf restart
 
 date
 echo "completed ubuntu devbox install on pid $$"
