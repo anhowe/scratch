@@ -197,10 +197,11 @@ sudo pip install virtualenv
 mkdir $HOMEDIR/dcos
 sudo chown $AZUREUSER $HOMEDIR/dcos
 cd $HOMEDIR/dcos
-curl -O  https://downloads.mesosphere.io/dcos-cli/install.sh
-chmod +x ./install.sh
-sudo chown $AZUREUSER ./install.sh
+wget https://raw.githubusercontent.com/mesosphere/dcos-cli/master/bin/install/install-optout-dcos-cli.sh
+bash ./install-optout-dcos-cli.sh . http://master.mesos --add-path yes
 
+# add DCOS_CONFIG env variable for DCOS CAssandra subcommands
+echo DCOS_CONFIG=/home/$AZUREUSER/.dcos/dcos.toml > /home/$AZUREUSER/.bashrc
 
 ########################################
 # generate nameserver IPs for resolvconf/resolv.conf.d/head file

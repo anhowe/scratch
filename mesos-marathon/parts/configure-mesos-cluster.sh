@@ -18,6 +18,9 @@ ps ax
 
 SWARM_VERSION="ahmet/swarm:1.0.0-zk-hotfix"
 MESOS_DNS_VERSION="0.5.1"
+OPENRESTY_VERSION="ngx_openresty-1.9.3.1"
+DCOS_ADMIN_ROUTE="https://github.com/clca/adminrouter-public.git"
+
 #############
 # Parameters
 #############
@@ -462,6 +465,43 @@ then
   echo "downloading, and kicking off post install script"
   /bin/bash -c "wget --tries 20 --retry-connrefused --waitretry=15 -qO- $POSTINSTALLSCRIPTURI | nohup /bin/bash >> /var/log/azure/cluster-bootstrap-postinstall.log 2>&1 &"
 fi
+
+############################################
+## Install NGNIX and DCOS Admin Route
+############################################
+if ismaster; then
+# install prereq
+  sudo apt-get install -y libreadline-dev libncurses5-dev libpcre3-dev \
+      libssl-dev perl make build-essential
+  cd /home/$AZUREUSER
+  wget https://openresty.org/download/$OPENRESTY_VERSION.tar.gz
+  tar xzvf $OPENRESTY_VERSION.tar.gz
+  cd $OPENRESTY_VERSION
+  #build and install openResty
+  ./configure --with-luajit && make && make install
+  # git is already installed so can clone repos
+  cd /home/$AZUREUSER
+  git clone $DCOS_ADMIN_ROUTE
+
+  sudo cp /home/$AZUREUSER/adminrouter-public/*.lua /usr/local/openresty/nginx/conf
+  ## testing only, certs will have to be replaced   
+  sudo cp /home/$AZUREUSER/adminrouter-public/snakeoil.* /usr/local/openresty/nginx/conf
+
+  sudo cp /home/$AZUREUSER/adminrouter-public/nginx.conf /usr/local/openresty/nginx/conf
+
+  #install openresty startup script
+  wget https://gist.githubusercontent.com/vdel26/8805927/raw/249f907e465e98ac099437025218a15e55a34b4c/nginx
+  sudo cp /home/$AZUREUSER/nginx /etc/init.d/
+  sudo chmod +x /etc/init.d/nginx
+  # create dir for NGINX log
+  sudo mkdir /var/log/nginx
+  sudo service nginx stop
+  sudo service nginx start
+  #cleanup
+  cd /home/$AZUREUSER
+  sudo rm -rf * 
+fi
+############################################
 
 ps ax
 echo "Finished installing and configuring docker and swarm"
