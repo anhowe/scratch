@@ -169,6 +169,42 @@ sudo pkill waagent
 time sudo apt-get -y remove walinuxagent
 time sudo DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes install ubuntu-desktop firefox vnc4server ntp nodejs npm expect gnome-panel gnome-settings-daemon metacity nautilus gnome-terminal gnome-core
 
+#####################
+# setup the Azure CLI
+#####################
+time sudo npm install azure-cli -g
+time sudo update-alternatives --install /usr/bin/node nodejs /usr/bin/nodejs 100
+
+####################
+# Setup Chrome
+####################
+cd /tmp
+time wget --tries 4 --retry-connrefused --waitretry=15 https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+time sudo dpkg -i google-chrome-stable_current_amd64.deb
+time sudo apt-get -y --force-yes install -f
+time rm /tmp/google-chrome-stable_current_amd64.deb
+
+###################
+# Install Mesos DCOS CLI
+###################
+installMesosDCOSCLI()
+{
+  sudo DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes install -y python-pip openjdk-7-jre-headless
+  sudo pip install virtualenv
+  sudo -i -u $AZUREUSER mkdir $HOMEDIR/dcos
+  for i in {1..10}; do
+    wget --tries 4 --retry-connrefused --waitretry=15 -qO- https://raw.githubusercontent.com/mesosphere/dcos-cli/master/bin/install/install-optout-dcos-cli.sh | sudo -i -u $AZUREUSER /bin/bash -s $HOMEDIR/dcos/. http://leader.mesos --add-path yes
+    if [ $? -eq 0 ]
+    then
+      echo "Mesos DCOS-CLI installed successfully"
+      break
+    fi
+    sleep 10
+  done
+}
+
+time installMesosDCOSCLI
+
 #########################################
 # Setup Azure User Account including VNC
 #########################################
@@ -177,7 +213,7 @@ sudo -i -u $AZUREUSER touch $HOMEDIR/bin/startvnc
 sudo -i -u $AZUREUSER chmod 755 $HOMEDIR/bin/startvnc
 sudo -i -u $AZUREUSER touch $HOMEDIR/bin/stopvnc
 sudo -i -u $AZUREUSER chmod 755 $HOMEDIR/bin/stopvnc
-echo "vncserver -geometry 1280x1024 -depth 16" | sudo tee $HOMEDIR/bin/startvnc
+echo "vncserver -geometry 1280x1024 -depth 16 -SecurityTypes None" | sudo tee $HOMEDIR/bin/startvnc
 echo "vncserver -kill :1" | sudo tee $HOMEDIR/bin/stopvnc
 echo "export PATH=\$PATH:~/bin" | sudo tee -a $HOMEDIR/.bashrc
 
@@ -216,43 +252,7 @@ echo "gnome-terminal &" | sudo tee -a $HOMEDIR/.vnc/xstartup
 
 sudo -i -u $AZUREUSER $HOMEDIR/bin/startvnc
 
-#####################
-# setup the Azure CLI
-#####################
-time sudo npm install azure-cli -g
-time sudo update-alternatives --install /usr/bin/node nodejs /usr/bin/nodejs 100
-
-####################
-# Setup Chrome
-####################
-cd /tmp
-time wget --tries 4 --retry-connrefused --waitretry=15 https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-time sudo dpkg -i google-chrome-stable_current_amd64.deb
-time sudo apt-get -y --force-yes install -f
-time rm /tmp/google-chrome-stable_current_amd64.deb
-
-###################
-# Install Mesos DCOS CLI
-###################
-installMesosDCOSCLI()
-{
-  sudo DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes install -y python-pip openjdk-7-jre-headless
-  sudo pip install virtualenv
-  sudo -i -u $AZUREUSER mkdir $HOMEDIR/dcos
-  for i in {1..10}; do
-    wget --tries 4 --retry-connrefused --waitretry=15 -qO- https://raw.githubusercontent.com/mesosphere/dcos-cli/master/bin/install/install-optout-dcos-cli.sh | sudo -i -u $AZUREUSER /bin/bash -s $HOMEDIR/dcos/. http://leader.mesos --add-path yes
-    if [ $? -eq 0 ]
-    then
-      echo "Mesos DCOS-CLI installed successfully"
-      break
-    fi
-    sleep 10
-  done
-}
-
-time installMesosDCOSCLI
-
-########################################  
+########################################
 # generate nameserver IPs for resolvconf/resolv.conf.d/head file
 # for mesos_dns so service names can be resolve from the jumpbox as well
 ########################################
