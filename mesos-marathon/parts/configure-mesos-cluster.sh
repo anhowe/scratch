@@ -335,14 +335,15 @@ fi
 if ismaster ; then
   # Download and install mesos-dns
   sudo mkdir -p /usr/local/mesos-dns
-  sudo wget --tries 4 --retry-connrefused --waitretry=15 https://github.com/mesosphere/mesos-dns/releases/download/v0.5.1/mesos-dns-v0.5.1-linux-amd64 -O mesos-dns-linux 
+  sudo wget --tries 4 --retry-connrefused --waitretry=15 https://github.com/mesosphere/mesos-dns/releases/download/v0.5.1/mesos-dns-v0.5.1-linux-amd64 -O mesos-dns-linux
   sudo chmod +x mesos-dns-linux
   sudo mv mesos-dns-linux /usr/local/mesos-dns/mesos-dns
   RESOLVER=`cat /etc/resolv.conf | grep nameserver | tail -n 1 | awk '{print $2}'`
-  
+
+  $COUNT=$((MASTERCOUNT-1))
   #generate a list of master's for input to zk config
   MASTERS=""
-  for i  in `seq 0 $((MASTERCOUNT-1))` ;
+  for i  in `seq 0 $COUNT` ;
    do
      MASTEROCTET=`expr $MASTERFIRSTADDR + $i`
      IPADDR="$BASESUBNET$MASTEROCTET:5050"
