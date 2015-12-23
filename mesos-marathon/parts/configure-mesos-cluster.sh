@@ -340,7 +340,7 @@ if ismaster ; then
   sudo mv mesos-dns-linux /usr/local/mesos-dns/mesos-dns
   RESOLVER=`cat /etc/resolv.conf | grep nameserver | tail -n 1 | awk '{print $2}'`
 
-  $COUNT=$((MASTERCOUNT-1))
+  COUNT=$((MASTERCOUNT-1))
   #generate a list of master's for input to zk config
   MASTERS=""
   for i  in `seq 0 $COUNT` ;
