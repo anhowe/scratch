@@ -494,6 +494,7 @@ fi
 ###################
 installMesosDCOSCLI()
 {
+  sudo DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes install -y python-pip
   sudo pip install virtualenv
   sudo -i -u $AZUREUSER mkdir $HOMEDIR/dcos
   for i in {1..10}; do
