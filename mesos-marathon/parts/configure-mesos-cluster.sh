@@ -470,13 +470,14 @@ installMesosAdminRouter()
 {
   sudo DEBIAN_FRONTEND=noninteractive apt-get -y --force-yes install nginx-extras lua-cjson
   # the admin router comes from https://github.com/mesosphere/adminrouter-public
-  ADMIN_ROUTER_GITHUB_URL=https://raw.githubusercontent.com/mesosphere/adminrouter-public/master
+  ADMIN_ROUTER_GITHUB_URL=https://raw.githubusercontent.com/anhowe/adminrouter-public/master
   NGINX_CONF_PATH=/usr/share/nginx/conf
   sudo mkdir -p $NGINX_CONF_PATH
-  wget --tries 4 --retry-connrefused --waitretry=15 -qO$NGINX_CONF_PATH/common.lua https://raw.githubusercontent.com/anhowe/adminrouter-public/master/common.lua
+  wget --tries 4 --retry-connrefused --waitretry=15 -qO$NGINX_CONF_PATH/common.lua $ADMIN_ROUTER_GITHUB_URL/common.lua
   wget --tries 4 --retry-connrefused --waitretry=15 -qO$NGINX_CONF_PATH/metadata.lua $ADMIN_ROUTER_GITHUB_URL/metadata.lua
   wget --tries 4 --retry-connrefused --waitretry=15 -qO$NGINX_CONF_PATH/service.lua $ADMIN_ROUTER_GITHUB_URL/service.lua
   wget --tries 4 --retry-connrefused --waitretry=15 -qO$NGINX_CONF_PATH/slave.lua $ADMIN_ROUTER_GITHUB_URL/slave.lua
+  wget --tries 4 --retry-connrefused --waitretry=15 -qO$NGINX_CONF_PATH/slavehostname.lua $ADMIN_ROUTER_GITHUB_URL/slavehostname.lua
   wget --tries 4 --retry-connrefused --waitretry=15 -qO$NGINX_CONF_PATH/url.lua $ADMIN_ROUTER_GITHUB_URL/url.lua
 
   sudo mv /etc/nginx/nginx.conf /etc/nginx/nginx.conf.orig
