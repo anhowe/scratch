@@ -251,12 +251,6 @@
     "masterAddressPrefix": "172.16.0.0/24",
     "agentAddressPrefix": "10.0.0.0/8",
     "storageAccountType": "Standard_GRS",
-    "storageAccountPrefixes": [
-      "0","6","c","i","o","u","1","7","d","j","p","v",
-      "2","8","e","k","q","w","3","9","f","l","r","x",
-      "4","a","g","m","s","y","5","b","h","n","t","z"
-    ],
-    "storageAccountPrefixesCount": "[length(variables('storageAccountPrefixes'))]",
     "storageAccountBaseName": "[concat(uniqueString(variables('masterEndpointDNSNamePrefix')), variables('orchestratorName'))]",
     "masterStorageAccountName": "[concat(variables('storageAccountBaseName'), '0')]",
     "omsStorageAccount": "none",
@@ -290,7 +284,8 @@
     "agentsLbIPConfigName": "[concat(variables('orchestratorName'), '-agent-lbFrontEnd-', variables('nameSuffix'))]",
     "agentsLbIPConfigID": "[concat(variables('agentsLbID'),'/frontendIPConfigurations/', variables('agentsLbIPConfigName'))]",
     "agentsLbBackendPoolName": "[concat(variables('orchestratorName'), '-agent-pool-', variables('nameSuffix'))]",
-    "agentStorageAccountsCount": "[add(div(variables('agentCount'), variables('vmsPerStorageAccount')), mod(add(mod(variables('agentCount'), variables('vmsPerStorageAccount')),2), add(mod(variables('agentCount'), variables('vmsPerStorageAccount')),1)))]",
+    "agentPublicStorageAccountNamePrefix": "agentpublicstorage",
+	"agentStorageAccountsCount": 20,
     "agentsPerIPv4Octet": 200,
     "agentCustomScript": "[concat('/usr/bin/nohup /bin/bash -c \"/bin/bash /opt/azure/containers/configure-mesos-cluster.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/cluster-bootstrap.log 2>&1 &\" &')]"
   },
@@ -511,7 +506,21 @@
                     ]
                 }
             }
+        },
+		{
+            "type": "Microsoft.Storage/storageAccounts",
+			"name": "[concat(variables('agentPublicStorageAccountNamePrefix'), copyindex())]",
+            "apiVersion": "2015-06-15",
+            "location": "[variables('storageLocation')]",
+            "copy": {
+                "name": "agentPublicLoopNode",
+                "count": "[variables('agentStorageAccountsCount')]"
+            },
+            "properties": {
+                "accountType": "[variables('storageAccountType')]"
+            }
         }
+		
   ],
   "outputs": {
     "masterFQDN": {
