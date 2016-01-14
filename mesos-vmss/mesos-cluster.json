@@ -27,20 +27,14 @@
       "type": "string",
       "defaultValue": "azureuser",
       "metadata": {
-        "description": "User name for the Windows Jumpbox Virtual Machine (Password Only Supported)."
+        "description": "User name for the Windows Virtual Machine (Password Only Supported)."
       }
     },
     "windowsAdminPassword": {
       "type": "securestring",
       "defaultValue": "",
       "metadata": {
-        "description": "Password for the Windows Jumpbox Virtual Machine."
-      }
-    },
-    "jumpboxEndpointDNSNamePrefix": {
-      "type": "string",
-      "metadata": {
-        "description": "Sets the Domain name label for the jumpbox.  The concatenation of the domain name label and the regionalized DNS zone make up the fully qualified domain name associated with the public IP address."
+        "description": "Password for the Windows Virtual Machine."
       }
     },
     "masterEndpointDNSNamePrefix": {
@@ -110,7 +104,7 @@
     },
     "linuxSku": {
       "type": "string",
-      "defaultValue": "14.04.3-LTS",
+      "defaultValue": "15.10",
       "metadata": {
         "description": "This is the linux sku used by the linux cluster"
       }
@@ -122,25 +116,25 @@
         "description": "This is the linux version used by the linux cluster"
       }
     },
-    "windowsJumpboxPublisher": {
+    "windowsPublisher": {
       "type": "string",
       "defaultValue": "MicrosoftVisualStudio",
       "metadata": {
-        "description": "This is the windows publisher used by the windows jumpbox"
+        "description": "This is the windows publisher used by the windows"
       }
     },
-    "windowsJumpboxOffer": {
+    "windowsOffer": {
       "type": "string",
       "defaultValue": "VisualStudio",
       "metadata": {
-        "description": "This is the windows offer used by the windows jumpbox"
+        "description": "This is the windows offer used by the windows"
       }
     },
-    "windowsJumpboxSku": {
+    "windowsSku": {
       "type": "string",
       "defaultValue": "VS-2015-Enterprise-AzureSDK-2.7-WS2012R2",
       "metadata": {
-        "description": "This is the windows sku used by the windows jumpbox"
+        "description": "This is the windows sku used by the windows"
       }
     },
     "isValidation": {
@@ -191,7 +185,6 @@
   "variables": {
     "adminUsername": "[parameters('linuxAdminUsername')]",
     "adminPassword": "[parameters('linuxAdminPassword')]",
-    "jumpboxEndpointDNSNamePrefix": "[tolower(parameters('jumpboxEndpointDNSNamePrefix'))]",
     "masterEndpointDNSNamePrefix": "[tolower(parameters('masterEndpointDNSNamePrefix'))]",
     "agentEndpointDNSNamePrefix": "[tolower(parameters('agentEndpointDNSNamePrefix'))]",
     "agentCount": "[parameters('agentCount')]",
@@ -202,9 +195,9 @@
     "linuxOffer": "[parameters('linuxOffer')]",
     "linuxSku": "[parameters('linuxSku')]",
     "linuxVersion": "[parameters('linuxVersion')]",
-    "windowsJumpboxPublisher": "[parameters('windowsJumpboxPublisher')]",
-    "windowsJumpboxOffer": "[parameters('windowsJumpboxOffer')]",
-    "windowsJumpboxSku": "[parameters('windowsJumpboxSku')]",
+    "windowsPublisher": "[parameters('windowsPublisher')]",
+    "windowsOffer": "[parameters('windowsOffer')]",
+    "windowsSku": "[parameters('windowsSku')]",
     "windowsAdminUsername": "[parameters('windowsAdminUsername')]",
     "windowsAdminPassword": "[parameters('windowsAdminPassword')]",
     "vmsPerStorageAccount": "[parameters('vmsPerStorageAccount')]",
@@ -242,8 +235,7 @@
 
     "masterPublicIPAddressName": "[concat(variables('orchestratorName'), '-master-ip-', variables('masterEndpointDNSNamePrefix'), '-', variables('nameSuffix'))]",
     "agentPublicIPAddressName": "[concat(variables('orchestratorName'), '-agent-ip-', variables('agentEndpointDNSNamePrefix'), '-', variables('nameSuffix'))]",
-    "jumpboxPublicIPAddressName": "[concat(variables('orchestratorName'), '-jumpbox-ip-', variables('jumpboxEndpointDNSNamePrefix'), '-', variables('nameSuffix'))]",
-
+	
     "marathonEnabled": true,
     "chronosEnabled": true,
     "swarmEnabled": false,
@@ -254,10 +246,10 @@
 
     "virtualNetworkName": "[concat(variables('orchestratorName'), '-vnet-', variables('nameSuffix'))]",
     "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
-    "subnetName": "[concat(variables('orchestratorName'), '-subnet')]",
-    "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
-    "addressPrefix": "10.0.0.0/16",
-    "subnetPrefix": "10.0.0.0/18",
+    "masterSubnetName": "[concat(variables('orchestratorName'), '-masterSubnet')]",
+    "masterSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('masterSubnetName'))]",
+    "masterAddressPrefix": "172.16.0.0/24",
+    "agentAddressPrefix": "10.0.0.0/8",
     "storageAccountType": "Standard_GRS",
     "storageAccountPrefixes": [
       "0","6","c","i","o","u","1","7","d","j","p","v",
@@ -271,18 +263,8 @@
     "omsStorageAccountKey": "none",
     "clusterInstallParameters": "[concat(variables('masterCount'), ' ',variables('masterVMNamePrefix'), ' ',variables('masterFirstAddr'), ' ',variables('swarmEnabled'),' ',variables('marathonEnabled'),' ',variables('chronosEnabled'),' ',variables('omsStorageAccount'),' ',variables('omsStorageAccountKey'),' ', variables('adminUsername'),' ',variables('postInstallScriptURI'))]",
 
-    "jumpboxNSGName": "[concat(variables('orchestratorName'), '-jumpbox-nsg-', variables('nameSuffix'))]",
-    "jumpboxNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('jumpboxNSGName'))]",
-    "jumpboxAddr": 4,
-    "jumpboxVMName": "[concat('jb-', variables('nameSuffix'))]",
-    "jumpboxVMSize": "Standard_A1",
-
-    "jumpboxLinuxInstallParameters": "[concat(variables('adminUsername'), ' ', variables('masterCount'), ' ', variables('masterFirstAddr'))]",
-    "jumpboxLinuxCustomScript": "[concat('/usr/bin/nohup /bin/bash -c \"/bin/bash /opt/azure/containers/configure-ubuntu.sh ',variables('jumpboxLinuxInstallParameters'),' >> /var/log/azure/jumpbox-bootstrap.log 2>&1 &\" &')]",
-
     "setBrowserFirstTabDefaultPrefix": "powershell.exe -ExecutionPolicy Unrestricted -command \"New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer' ; New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\BrowserEmulation' ; New-ItemProperty -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\BrowserEmulation' -Name IntranetCompatibilityMode -Value 0 -Type DWord; New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Main' ; New-ItemProperty -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Main' -Name 'Start Page' -Type String -Value http://\"",
     "setBrowserFirstTabDefaultSuffix": "0:5050",
-    "jumpboxWindowsCustomScript": "[concat(variables('setBrowserFirstTabDefaultPrefix'),variables('masterVMNamePrefix'),variables('setBrowserFirstTabDefaultSuffix'))]",
 
     "masterNSGName": "[concat(variables('orchestratorName'), '-master-nsg-', variables('nameSuffix'))]",
     "masterNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('masterNSGName'))]",
@@ -313,13 +295,58 @@
     "agentCustomScript": "[concat('/usr/bin/nohup /bin/bash -c \"/bin/bash /opt/azure/containers/configure-mesos-cluster.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/cluster-bootstrap.log 2>&1 &\" &')]"
   },
   "resources": [
-
+		{
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[variables('masterStorageAccountName')]",
+            "apiVersion": "2015-06-15",
+            "location": "[variables('storageLocation')]",
+            "properties": {
+                "accountType": "[variables('storageAccountType')]"
+            }
+        },
+        {
+            "apiVersion": "2015-06-15",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('virtualNetworkName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('masterAddressPrefix')]",
+						"[variables('agentAddressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('masterSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('masterAddressPrefix')]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "2015-06-15",
+            "type": "Microsoft.Compute/availabilitySets",
+            "name": "[variables('masterAvailabilitySet')]",
+            "location": "[resourceGroup().location]",
+            "properties": {}
+        },
+        {
+            "apiVersion": "2015-06-15",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('masterPublicIPAddressName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "dnsSettings": {
+                    "domainNameLabel": "[variables('masterEndpointDNSNamePrefix')]"
+                }
+            }
+        }
   ],
   "outputs": {
-    "jumpboxFQDN": {
-      "type": "string",
-      "value": ""
-    },
     "masterFQDN": {
       "type": "string",
       "value": "reference(concat('Microsoft.Network/publicIPAddresses/', variables('masterPublicIPAddressName'))).dnsSettings.fqdn"
