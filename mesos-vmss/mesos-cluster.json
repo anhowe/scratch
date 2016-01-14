@@ -416,12 +416,107 @@
                     }
                 ]
             }
+        },
+        {
+            "apiVersion": "2015-06-15",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(variables('masterVMNamePrefix'), 'nic-', copyIndex())]",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "nicLoopNode",
+                "count": "[variables('masterCount')]"
+            },
+            "dependsOn": [
+                "[variables('masterLbID')]",
+                "[variables('vnetID')]",
+                "[concat(variables('masterLbID'),'/inboundNatRules/SSH-',variables('masterVMNamePrefix'),copyIndex())]",
+                "[variables('masterNSGID')]"
+            ],
+            "properties": {
+                "networkSecurityGroup": {
+                    "id": "[variables('masterNSGID')]"
+                },
+                "ipConfigurations": [
+                    {
+                        "name": "ipConfigNode",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[concat(split(variables('masterAddressPrefix'),'0/24')[0], copyIndex(variables('masterFirstAddr')))]",
+                            "subnet": {
+                                "id": "[variables('masterSubnetRef')]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[concat(variables('masterLbID'), '/backendAddressPools/', variables('masterLbBackendPoolName'))]"
+                                }
+                            ],
+                            "loadBalancerInboundNatRules": [
+                                {
+                                    "id": "[concat(variables('masterLbID'),'/inboundNatRules/SSH-',variables('masterVMNamePrefix'),copyIndex())]"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "2015-06-15",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[concat(variables('masterVMNamePrefix'), copyIndex())]",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "vmLoopNode",
+                "count": "[variables('masterCount')]"
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkInterfaces/', variables('masterVMNamePrefix'), 'nic-', copyIndex())]",
+                "[concat('Microsoft.Compute/availabilitySets/',variables('masterAvailabilitySet'))]",
+                "[variables('masterStorageAccountName')]"
+            ],
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets',variables('masterAvailabilitySet'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "[variables('masterVMSize')]"
+                },
+                "osProfile": {
+                    "computername": "[concat(variables('masterVMNamePrefix'), copyIndex())]",
+                    "adminUsername": "[variables('adminUsername')]",
+                    "adminPassword": "[variables('adminPassword')]",
+                    "linuxConfiguration": "[variables('linuxConfiguration')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('osImagePublisher')]",
+                        "offer": "[variables('osImageOffer')]",
+                        "sku": "[variables('osImageSKU')]",
+                        "version": "[variables('osImageVersion')]"
+                    },
+                    "osDisk": {
+                        "name": "[concat(variables('masterVMNamePrefix'), copyIndex(),'-osdisk')]",
+                        "vhd": {
+                            "uri": "[concat('http://', variables('masterStorageAccountName'), '.blob.core.windows.net/vhds/', variables('masterVMNamePrefix'), copyIndex(), '-osdisk.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('masterVMNamePrefix'), 'nic-', copyIndex()))]"
+                        }
+                    ]
+                }
+            }
         }
   ],
   "outputs": {
     "masterFQDN": {
       "type": "string",
-      "value": "reference(concat('Microsoft.Network/publicIPAddresses/', variables('masterPublicIPAddressName'))).dnsSettings.fqdn"
+      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('masterPublicIPAddressName'))).dnsSettings.fqdn]"
     },
     "agentFQDN": {
       "type": "string",
