@@ -344,6 +344,78 @@
                     "domainNameLabel": "[variables('masterEndpointDNSNamePrefix')]"
                 }
             }
+        },
+        {
+            "apiVersion": "2015-06-15",
+            "name": "[variables('masterLbName')]",
+            "type": "Microsoft.Network/loadBalancers",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/publicIPAddresses/', variables('masterPublicIPAddressName'))]"
+            ],
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "[variables('masterLbIPConfigName')]",
+                        "properties": {
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('masterPublicIPAddressName'))]"
+                            }
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "[variables('masterLbBackendPoolName')]"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "2015-06-15",
+            "type": "Microsoft.Network/loadBalancers/inboundNatRules",
+            "name": "[concat(variables('masterLbName'), '/', 'SSH-', variables('masterVMNamePrefix'), copyIndex())]",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "masterLbLoopNode",
+                "count": "[variables('masterCount')]"
+            },
+            "dependsOn": [
+                "[variables('masterLbID')]"
+            ],
+            "properties": {
+                "frontendIPConfiguration": {
+                    "id": "[variables('masterLbIPConfigID')]"
+                },
+                "protocol": "tcp",
+                "frontendPort": "[copyIndex(2200)]",
+                "backendPort": 22,
+                "enableFloatingIP": false
+            }
+        },
+        {
+            "apiVersion": "2015-06-15",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('masterNSGName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "ssh",
+                        "properties": {
+                            "description": "Allow SSH",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 200,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
         }
   ],
   "outputs": {
