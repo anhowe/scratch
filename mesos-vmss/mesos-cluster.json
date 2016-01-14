@@ -251,7 +251,16 @@
     "masterAddressPrefix": "172.16.0.0/24",
     "agentAddressPrefix": "10.0.0.0/8",
     "storageAccountType": "Standard_GRS",
-    "storageAccountBaseName": "[concat(uniqueString(variables('masterEndpointDNSNamePrefix')), variables('orchestratorName'))]",
+	"storageAccountPrefixes": [
+      "0","6","c","i","o","u","1","7","d","j","p","v",
+      "2","8","e","k","q","w","3","9","f","l","r","x",
+      "4","a","g","m","s","y","5","b","h","n","t","z"
+    ],
+
+    "storageAccountPrefixesCount": "[length(variables('storageAccountPrefixes'))]",
+	"storageAccountBaseName": "[concat(uniqueString(variables('masterEndpointDNSNamePrefix')), variables('orchestratorName'))]",
+	"agentStoragePublicAccountName": "[concat(uniqueString(variables('masterEndpointDNSNamePrefix')), 'agntpub')]",
+	"agentStoragePrivateAccountName": "[concat(uniqueString(variables('masterEndpointDNSNamePrefix')), 'agntpri')]",
     "masterStorageAccountName": "[concat(variables('storageAccountBaseName'), '0')]",
     "omsStorageAccount": "none",
     "omsStorageAccountKey": "none",
@@ -284,7 +293,7 @@
     "agentsLbIPConfigName": "[concat(variables('orchestratorName'), '-agent-lbFrontEnd-', variables('nameSuffix'))]",
     "agentsLbIPConfigID": "[concat(variables('agentsLbID'),'/frontendIPConfigurations/', variables('agentsLbIPConfigName'))]",
     "agentsLbBackendPoolName": "[concat(variables('orchestratorName'), '-agent-pool-', variables('nameSuffix'))]",
-    "agentPublicStorageAccountNamePrefix": "agentpublicstorage",
+	"agentPublicStorageAccountNamePrefix": "agentpub0",
 	"agentStorageAccountsCount": 20,
     "agentsPerIPv4Octet": 200,
     "agentCustomScript": "[concat('/usr/bin/nohup /bin/bash -c \"/bin/bash /opt/azure/containers/configure-mesos-cluster.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/cluster-bootstrap.log 2>&1 &\" &')]"
@@ -509,7 +518,7 @@
         },
 		{
             "type": "Microsoft.Storage/storageAccounts",
-			"name": "[concat(variables('agentPublicStorageAccountNamePrefix'), copyindex())]",
+			"name": "[concat(variables('storageAccountPrefixes')[mod(copyIndex(),variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(copyIndex(),variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),copyIndex(1))]",
             "apiVersion": "2015-06-15",
             "location": "[variables('storageLocation')]",
             "copy": {
@@ -518,6 +527,58 @@
             },
             "properties": {
                 "accountType": "[variables('storageAccountType')]"
+            }
+        },
+		{
+            "apiVersion": "2015-06-15",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('agentNSGName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "http",
+                        "properties": {
+                            "description": "Allow HTTP",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "80",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 210,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "https",
+                        "properties": {
+                            "description": "Allow HTTPS",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "443",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 220,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "Tcp8080",
+                        "properties": {
+                            "description": "Allow port 8080",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "8080",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 230,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
             }
         }
 		
