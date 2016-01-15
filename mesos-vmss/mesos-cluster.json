@@ -187,7 +187,10 @@
     "adminPassword": "[parameters('linuxAdminPassword')]",
     "masterEndpointDNSNamePrefix": "[tolower(parameters('masterEndpointDNSNamePrefix'))]",
     "agentEndpointDNSNamePrefix": "[tolower(parameters('agentEndpointDNSNamePrefix'))]",
-    "agentCount": "[parameters('agentCount')]",
+	"agentPublicVMSSCount" : 1,
+	"agentPrivateVMSSCount": 1,
+    "agentPublicCount": "[parameters('agentCount')]",
+	"agentPrivateCount": "[parameters('agentCount')]",
     "masterCount": "[parameters('masterCount')]",
     "agentVMSize": "[parameters('agentVMSize')]",
     "sshRSAPublicKey": "[parameters('sshRSAPublicKey')]",
@@ -250,6 +253,10 @@
     "masterSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('masterSubnetName'))]",
     "masterAddressPrefix": "172.16.0.0/24",
     "agentAddressPrefix": "10.0.0.0/8",
+	"agentPublicAddressPrefix": "10.32.0.0/11",
+	"agentPrivateAddressPrefix": "10.0.0.0/11",
+	"agentPublicSubnetName": "[concat(variables('orchestratorName'), '-agentPublicSubnet')]",
+	"agentPrivateSubnetName": "[concat(variables('orchestratorName'), '-agentPrivateSubnet')]",
     "storageAccountType": "Standard_GRS",
 	"storageAccountPrefixes": [
       "0","6","c","i","o","u","1","7","d","j","p","v",
@@ -286,7 +293,8 @@
     "agentNSGName": "[concat(variables('orchestratorName'), '-agent-nsg-', variables('nameSuffix'))]",
     "agentNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('agentNSGName'))]",
     "agentFirstAddr": 20,
-    "agentVMNamePrefix": "[concat(variables('orchestratorName'), '-agent-', variables('nameSuffix'), '-')]",
+    "agentPublicVMNamePrefix": "[concat(variables('orchestratorName'), '-agent-public-', variables('nameSuffix'), '-')]",
+	"agentPrivateVMNamePrefix": "[concat(variables('orchestratorName'), '-agent-private-', variables('nameSuffix'), '-')]",
     "agentAvailabilitySet": "[concat(variables('orchestratorName'), '-agent-availabilitySet-', variables('nameSuffix'))]",
     "agentsPublicLbName": "[concat(variables('orchestratorName'), '-agent-lb-', variables('nameSuffix'))]",
     "agentsPublicLbID": "[resourceId('Microsoft.Network/loadBalancers',variables('agentsPublicLbName'))]",
@@ -294,6 +302,7 @@
     "agentsPublicLbIPConfigID": "[concat(variables('agentsPublicLbID'),'/frontendIPConfigurations/', variables('agentsPublicLbIPConfigName'))]",
     "agentsPublicLbBackendPoolName": "[concat(variables('orchestratorName'), '-agent-pool-', variables('nameSuffix'))]",
 	"agentPublicStorageAccountNamePrefix": "agentpub0",
+	
 	"agentStorageAccountsCount": 20,
     "agentsPerIPv4Octet": 200,
     "agentCustomScript": "[concat('/usr/bin/nohup /bin/bash -c \"/bin/bash /opt/azure/containers/configure-mesos-cluster.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/cluster-bootstrap.log 2>&1 &\" &')]"
@@ -326,7 +335,13 @@
                         "properties": {
                             "addressPrefix": "[variables('masterAddressPrefix')]"
                         }
-                    }
+                    },
+					{
+						"name": "[variables('agentPublicSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('agentPublicAddressPrefix')]"
+                        }
+					}
                 ]
             }
         },
@@ -518,7 +533,7 @@
         },
 		{
             "type": "Microsoft.Storage/storageAccounts",
-			"name": "[concat(variables('storageAccountPrefixes')[mod(copyIndex(),variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(copyIndex(),variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),copyIndex(1))]",
+			"name": "[concat(variables('storageAccountPrefixes')[mod(copyIndex(),variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(copyIndex(),variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),copyIndex())]",
             "apiVersion": "2015-06-15",
             "location": "[variables('storageLocation')]",
             "copy": {
@@ -527,58 +542,6 @@
             },
             "properties": {
                 "accountType": "[variables('storageAccountType')]"
-            }
-        },
-		{
-            "apiVersion": "2015-06-15",
-            "type": "Microsoft.Network/networkSecurityGroups",
-            "name": "[variables('agentNSGName')]",
-            "location": "[resourceGroup().location]",
-            "properties": {
-                "securityRules": [
-                    {
-                        "name": "http",
-                        "properties": {
-                            "description": "Allow HTTP",
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "80",
-                            "sourceAddressPrefix": "*",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 210,
-                            "direction": "Inbound"
-                        }
-                    },
-                    {
-                        "name": "https",
-                        "properties": {
-                            "description": "Allow HTTPS",
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "443",
-                            "sourceAddressPrefix": "*",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 220,
-                            "direction": "Inbound"
-                        }
-                    },
-                    {
-                        "name": "Tcp8080",
-                        "properties": {
-                            "description": "Allow port 8080",
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "8080",
-                            "sourceAddressPrefix": "*",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 230,
-                            "direction": "Inbound"
-                        }
-                    }
-                ]
             }
         },
 		{
@@ -710,9 +673,168 @@
                 ],
                 "inboundNatRules": []
             }
+        },
+		{
+			"type": "Microsoft.Compute/virtualMachineScaleSets",
+            "apiVersion": "2015-06-15",
+            "name": "[concat(variables('agentPublicVMNamePrefix'), 'vmss', copyIndex())]",
+            "location": "[resourceGroup().location]",
+			"copy": {
+                "name": "masterLbLoopNode",
+                "count": "[variables('agentPublicVMSSCount')]"
+            },
+            "dependsOn": [ "[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(0,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(0,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),0)]",
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(1,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(1,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),1)]",
+			
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(2,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(2,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),2)]",
+			
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(3,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(3,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),3)]",
+			
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(4,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(4,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),4)]",
+			
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(5,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(5,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),5)]",
+			
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(6,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(6,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),6)]",
+			
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(7,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(7,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),7)]",
+			
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(8,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(8,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),8)]",
+			
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(9,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(9,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),9)]",
+			
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(10,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(10,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),10)]",
+			
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(11,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(11,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),11)]",
+			
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(12,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(12,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),12)]",
+			
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(13,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(13,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),13)]",
+			
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(14,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(14,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),14)]",
+			
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(15,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(15,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),15)]",
+             
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(16,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(16,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),16)]",
+
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(17,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(17,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),17)]",
+
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(18,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(18,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),18)]",
+			
+			"[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(19,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(19,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),19)]",						
+
+			 "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]"
+            ],
+            "sku": {
+                "name": "Standard_A1",
+                "tier": "Standard",
+                "capacity": "[variables('agentPublicCount')]"
+            },
+            "properties": {
+                "upgradePolicy": {
+                    "mode": "Manual"
+                },
+                "virtualMachineProfile": {
+                    "storageProfile": {
+                        "osDisk": {
+                            "vhdContainers": [
+                                "[concat('https://',variables('storageAccountPrefixes')[mod(0,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(0,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),0,'.blob.core.windows.net/vmss1')]",
+								
+								"[concat('https://',variables('storageAccountPrefixes')[mod(1,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(1,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),1, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(2,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(2,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),2, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(3,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(3,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),3, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(4,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(4,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),4, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(5,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(5,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),5, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(6,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(6,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),6, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(7,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(7,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),7, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(8,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(8,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),8, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(9,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(9,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),9, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(10,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(10,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),10, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(11,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(11,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),11, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(12,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(12,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),12, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(13,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(13,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),13, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(14,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(14,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),14, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(15,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(15,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),15, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(16,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(16,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),16, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(17,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(17,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),17, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(18,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(18,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),18, '.blob.core.windows.net/vmss1')]",
+
+								"[concat('https://',variables('storageAccountPrefixes')[mod(19,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(19,variables('storageAccountPrefixesCount'))],variables('agentStoragePublicAccountName'),19, '.blob.core.windows.net/vmss1')]"
+						
+								
+                            ],
+                            "name": "vmssosdisk",
+                            "caching": "ReadOnly",
+                            "createOption": "FromImage"
+                        },
+                        "imageReference": {
+                            "publisher": "[variables('osImagePublisher')]",
+                            "offer": "[variables('osImageOffer')]",
+                            "sku": "[variables('osImageSKU')]",
+                            "version": "latest"
+                        }
+                    },
+                    "osProfile": {
+                        "computerNamePrefix": "[variables('agentPublicVMNamePrefix')]",
+                        "adminUsername": "[variables('adminUsername')]",
+                        "linuxConfiguration": {
+                            "disablePasswordAuthentication": "true",
+                            "ssh": {
+                                "publicKeys": [
+                                    {
+                                        "path": "[variables('sshKeyPath')]",
+                                        "keyData": "[parameters('sshRSAPublicKey')]"
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "networkProfile": {
+                        "networkInterfaceConfigurations": [
+                            {
+                                "name": "agentNodeNic",
+                                "properties": {
+                                    "primary": "true",
+                                    "ipConfigurations": [
+                                        {
+                                            "name": "nicipconfig",
+                                            "properties": {
+                                                "subnet": {
+                                                    "id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'), '/subnets/', variables('agentPublicSubnetName'))]"
+                                                },
+												"loadBalancerBackendAddressPools": [
+														{
+														"id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/loadBalancers/', variables('agentsPublicLbName'), '/backendAddressPools/',variables('agentsPublicLbBackendPoolName'))]"
+													}
+												]
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
         }
-		
-		
+	
+	
   ],
   "outputs": {
     "masterFQDN": {
@@ -721,7 +843,7 @@
     },
     "agentFQDN": {
       "type": "string",
-      "value": "reference(concat('Microsoft.Network/publicIPAddresses/', variables('agentPublicIPAddressName'))).dnsSettings.fqdn"
+      "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('agentPublicIPAddressName'))).dnsSettings.fqdn]"
     }
   }
 }
