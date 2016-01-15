@@ -1,5 +1,5 @@
 $VerbosePreference="Continue"
-$deployName="aaajmgmt0115a"
+$deployName="aaajmgmt0115c"
 $RGName=$deployName
 $locName="East Asia"
 $templateFile= "mesos-cluster.json"

@@ -1,9 +1,9 @@
 {
   "masterEndpointDNSNamePrefix": {
-    "value": "aaajmgmt0115a"
+    "value": "aaajmgmt0115c"
   },
   "agentEndpointDNSNamePrefix": {
-    "value": "aaajapp0115a"
+    "value": "aaajapp0115c"
   },
   "agentCount": {
     "value": 3
