@@ -832,9 +832,20 @@
                     }
                 }
             }
+        },
+		{
+            "type": "Microsoft.Storage/storageAccounts",
+			"name": "[concat(variables('storageAccountPrefixes')[mod(copyIndex(),variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(copyIndex(),variables('storageAccountPrefixesCount'))],variables('agentStoragePrivateAccountName'),copyIndex())]",
+            "apiVersion": "2015-06-15",
+            "location": "[variables('storageLocation')]",
+            "copy": {
+                "name": "agentPrivateLoopNode",
+                "count": "[variables('agentStorageAccountsCount')]"
+            },
+            "properties": {
+                "accountType": "[variables('storageAccountType')]"
+            }
         }
-	
-	
   ],
   "outputs": {
     "masterFQDN": {
