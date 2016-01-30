@@ -4,8 +4,8 @@
   "parameters": {},
   "variables": {
     "newStorageAccountNamePrefix": "anhowe921e",
-    "vmsPerStorageAccount": 10,
-    "agentCount": 20,
+    "vmsPerStorageAccount": 20,
+    "agentCount": 50,
     "storageAccountsCount": "[add(div(variables('agentCount'), variables('vmsPerStorageAccount')), mod(add(mod(variables('agentCount'), variables('vmsPerStorageAccount')),2), add(mod(variables('agentCount'), variables('vmsPerStorageAccount')),1)))]",
     "storageAccountType": "Standard_LRS",
     "storageAccountPrefix": [
