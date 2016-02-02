@@ -762,12 +762,12 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Compute/virtualMachineScaleSets",
-      "name": "[concat(variables('agentVMNamePrefix'), 'vmss-',0)]",
+      "name": "[concat(variables('agentVMNamePrefix'), '-vmss')]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
         "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountPrefixes')[mod(0,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(0,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),1)]",
         "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountPrefixes')[mod(1,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(1,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),2)]",
-        "[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(2,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(2,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),3)]",
+        "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountPrefixes')[mod(2,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(2,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),3)]",
         "[variables('agentsLbID')]",
         "[variables('vnetID')]",
         "[variables('agentNSGID')]"
