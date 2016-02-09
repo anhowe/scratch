@@ -83,15 +83,21 @@
     },
     "agentVMSize": {
       "type": "string",
-      "defaultValue": "Standard_A1",
+      "defaultValue": "Standard_D2",
       "allowedValues": [
-        "Standard_A1",
-        "Standard_A2",
-        "Standard_A3",
-        "Standard_A4"
-      ],
+		"Standard_A0", "Standard_A1", "Standard_A2", "Standard_A3", "Standard_A4", "Standard_A5",
+		"Standard_A6", "Standard_A7", "Standard_A8", "Standard_A9", "Standard_A10", "Standard_A11",
+		"Standard_D1", "Standard_D2", "Standard_D3", "Standard_D4",
+		"Standard_D11", "Standard_D12", "Standard_D13", "Standard_D14",
+		"Standard_D1_v2", "Standard_D2_v2", "Standard_D3_v2", "Standard_D4_v2", "Standard_D5_v2",
+		"Standard_D11_v2", "Standard_D12_v2", "Standard_D13_v2", "Standard_D14_v2",
+		"Standard_G1", "Standard_G2", "Standard_G3", "Standard_G4", "Standard_G5",
+		"Standard_DS1", "Standard_DS2", "Standard_DS3", "Standard_DS4",
+		"Standard_DS11", "Standard_DS12", "Standard_DS13", "Standard_DS14",
+		"Standard_GS1", "Standard_GS2", "Standard_GS3", "Standard_GS4", "Standard_GS5"
+	  ],
       "metadata": {
-        "description": "The size of the Virtual Machine. Allowable machine values are 1 core (A1), 2 core (A2), 4 core (A3), 8 core (A4)."
+        "description": "The size of the Virtual Machine."
       }
     },
     "linuxPublisher": {
@@ -293,7 +299,7 @@
     "masterFirstAddr": 5,
     "masterAvailabilitySet": "[concat(variables('orchestratorName'), '-master-availabilitySet-', variables('nameSuffix'))]",
     "masterLbName": "[concat(variables('orchestratorName'), '-master-lb-', variables('nameSuffix'))]",
-    "masterVMSize":"Standard_A1",
+    "masterVMSize":"Standard_A2",
     "masterLbID": "[resourceId('Microsoft.Network/loadBalancers',variables('masterLbName'))]",
     "masterLbIPConfigName": "[concat(variables('orchestratorName'), '-master-lbFrontEnd-', variables('nameSuffix'))]",
     "masterLbIPConfigID": "[concat(variables('masterLbID'),'/frontendIPConfigurations/', variables('masterLbIPConfigName'))]",
@@ -314,7 +320,150 @@
     "agentsPerIPv4Octet": 200,
     "agentCustomScript": "[concat('/bin/bash /opt/azure/containers/configure-mesos-cluster.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/cluster-bootstrap.log 2>&1')]",
     "agentRunCmdFile": "[concat(' -  content: |\n        #!/bin/bash\n        ',variables('agentCustomScript'),'\n    path: /opt/azure/containers/install-cluster.sh\n    permissions: \"0744\"\n')]",
-    "agentRunCmd": "[concat('runcmd:\n -  [ /bin/bash, /opt/azure/containers/install-cluster.sh ]\n\n')]"
+    "agentRunCmd": "[concat('runcmd:\n -  [ /bin/bash, /opt/azure/containers/install-cluster.sh ]\n\n')]",
+	"vmSizesMap": {
+         "Standard_A0": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A1": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A3": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A4": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A5": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A6": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A7": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A8": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A9": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A10": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A11": {
+           "storageAccountType":"Standard_GRS"
+         }, 
+         "Standard_D1": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D3": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D4": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D11": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D12": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D13": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D14": {
+           "storageAccountType":"Standard_GRS"
+         }, 
+         "Standard_D1_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D2_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D3_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D4_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D5_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D11_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D12_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D13_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D14_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_G1": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_G2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_G3": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_G4": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_G5": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_DS1": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_DS2": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_DS3": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_DS4": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_DS11": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_DS12": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_DS13": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_DS14": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_GS1": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_GS2": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_GS3": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_GS4": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_GS5": {
+           "storageAccountType":"Premium_LRS"
+         }
+    }
   },
   "resources": [
     {
@@ -401,7 +550,7 @@
           "computername": "[variables('jumpboxVMName')]",
           "adminUsername": "[variables('adminUsername')]",
           "adminPassword": "[variables('adminPassword')]",
-          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-ubuntu.sh\n    permissions: \"0744\"\n\n')]",
+          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        H4sIALJhuVYC/+0ZaW8iOfbz1q/wEtTqVndRkOljlWm0IoGeRtOBKCSt1s6MMqbKgJMqu8Z2Bdg5fvu+Z7u4Ap2QTUv7YSMFqux3+d3PHPw9GnIRDameBIFmhoSzIGDxRJKKNlQZLsakGBbCFCRht0M5I1zARpoSKUjOE1KtVoKEGhbkmtDZ9SgIDlb/ggNyRhXNmGFKb2wFrX9dnncuB53zZrURnLYGF53zk/5l76JZPfSvH7rng4tWuw0Q3wUf+6eddve8WYkmMmNRdYFeCT6f9lqnneavE6mNAG6/BsetQWdwedzrXDQrjXeHtcbbWr1W8Ue71EwdkVUCy3WCxEnCEcBzLLdvM6QN645dudwrMiJH5JRqPORRdeUkJYjbI13BDacpaSUJkt84Y2VDdwsNnsgsA3V/KERsuBR6K1jAhC4Ua/0bPnrMTKW6ef4i+D0g5IC4LWImjKCGCB6DcE0U0zK9pcOUARjunNsF9pHR1EzmzQYsj6QiHKxOfm/Uao3D+p/fk0TCukModWEX+Ij8RKr/JCH7jdTJL3YNeAr7gHKU5iETqsmQMQHUC5GQWArwtIJ5wC2S1P2WU+f6QdwpmK54mKFi9MY+j7j90iljOcHDJFIgEyfoXTYkFMxLvpDbcVxySyTTREhTsn1F6FC6QPGh4eRgM24sTxBi0wjC2Yfgh4ZN//4VtS+1Ph1jlPYjCMdIFBCIE2PyowjDeFyLZfakltgQ7K4VypOAM00c0H1WqG+aYZ3HbhNssEMTeJavSEwFvidyKlJJEzJSMiOokV3W4SM46YiP3UtO6NJmh4EX+U7cWIWFfA+zbUSLJ/C/bqJvaCEfNFblkASZ1k9ioaVyR/+tdUb/t87icI+3zZ/b6tHd+gbFrev7ibaMb5gKttQ1K70HQ1GoUzPwLxS+JxbTLuspVRnUUS+to+nL4Lrx65sZNTSKQ2Z/DU+KGTUPgYVQbFRolsDalHJj15uNNyT8rR/avKsh8QJ2zYmA6Zf8QaCVekoXcud3RynNACLpIo4hfEZQAh6ec8EshmPtX9UPGGHRCaEnEFWIUqlTbiayMMANlIUfBPShMgkqoT+UQMtGyoEAxC2PWbkNXoWtZOkRa0ZZybHUlAjLWLBy49rOKP5uaUfLuyQhRvJJrbAuRn2rbe6E8KpE0B+HdN/auMZ1d2gvBViJ6spGJHpjb2se7/sDD7nMscsnl24WwFgrBwH8Fwx9kao5Fl2KgfQoNs45rdZobkIbl3NSWNYgww0HVpjGppSOmTBWjEJ4QV4RCXtqyjXmrSTB1IDACdM3RubgyoANlM0E9ISYnhy86Vjx3Djnze2y57BdIMUyeYtSQDoqZpuA7c5xt9W7+nDe7110eu2mkCAhdP8UmnfAWqEThuDKMQvnkHdKbbphKyyFHnFIQTB13Yr4NYYVWFmYHMycsGuwdp5B1s1ZbMhYwNgS5lSw1D/DNIeZW4cJZTg+wAxGY27m0MYWhqeF9nAgWgZGK9FiqdgOJwETANEit2q1iZ2cfOrugF0qBKVcOAtihXHKSTheAXEmDsFvmRIU9QTREpZIUaGVHVPx2OXZ1xbhvVGvbxcbpB5YqU8m0BWy7TBxQiKT5U6k/QtCWQuStDaWcpwyLAWRdY8IRkkwUOTWw9gKEcLBYOq6igulwHuuaJa8fV1L2HBFJ0l+M8Zuc2/EezwMOhwLqzJ75IcKtmM2Lcv3KbQOmrRP+oNdPlEWZQuJgADnq8ATxA0s53OoVSLMoSGRORPXyU34LrwGd4OEmKSQn0pOCFHi3XJlCpoycVvugsrDYqWmkewGTLi4DIiSWOpv2E4oOq2NoepCIoCAxyoEdrDulKHickhxzMqAURRl9mLBxoE/UfkdytxA5Q5L0JqeYG+y9YSLOyAS6vWDRrVyvkxBidDiWCHgAJBgIduYCQEjPKTQ+nuQhZeEYP0n7mZWHWuPMrfIDy6j2TugVhxDE2CAcpwWtpJ87p3sQfJBjgRK3wEIhosna4CRbaGgCuzAiCfYk71782YvrK18ZP4INg7JX5OJ2JcqCFjIKeDlpHH4j/qsUT+EeEhYDm7TeEvCAYM0AxXpYp5DqPTApJXSRQ1jO05yh4et10eNr6GuSgf1EkYacta6+Nj8uYpfR38h2Bp+SJckahgYKg6CXMlxc1F2gGJOtZ4mQTbHh2bFvkqVwPyxI8xKXF+z37/v9D8EOqdTQSpVJF8J/FblzBM7qgSaQbNSqTo2P6slzGem+Gj+FQgmRwFOZQHy2SHUPS5SKs9r78DdF+vJdnXXADSaWZJF7lF2K3YLsLfOlx8/XX057bdPW2dX7e6gdfyp02zsRagQeJs96AwG3X7v6rTVa/3QOX8Ehfbx5eCqJIPPeFMLr3uR2gv4JxLOSMRMHK1ukl/Is2fQ7LH47t6+5H0OimpfcOAvoJRqR36mkuHdvb3Iz0BpSsIUEmqZ8oSMFZvvRQCW3HAPvggPPCbPvp2uV7vmZ4/A3Oyx96Ox6Mj3Q1v074+ReNHtPxR5R17YnpyDPYoujE3Q3MFMidO3T+bdM20bK3cRhX4QuccaPteSCFs5aAdSHAcR0LYjV4mAGW5572AJ2puM4eLXAXcljIPLdZHl+EMWjPtTlqYPFxn5PX/Omxs/23xP+PuNpZcrPwHB9suXL17Y9vBvpQEXB64uf6eq8k2L2ED/qioC2wc5qvdDV4KYGuijHkB37R5nCbq8y7EjuWMMvWmeMgNd3L2/FHoMT4XoOXSvYBW5nA+FHa8pF9h0aTkyU6oYVLhJYfB2H5OXkNPgPwf0PCe4HAAA\n    path: /opt/azure/containers/configure-ubuntu.sh\n    permissions: \"0744\"\n\n')]",
           "linuxConfiguration": "[variables('linuxConfiguration')]"
         },
         "storageProfile": {
@@ -453,7 +602,7 @@
       "apiVersion": "2015-06-15",
       "location": "[variables('storageLocation')]",
       "properties": {
-        "accountType": "[variables('storageAccountType')]"
+        "accountType":"[variables('vmSizesMap')[variables('masterVMSize')].storageAccountType]"
       }
     },
     {
@@ -643,7 +792,7 @@
           "computername": "[concat(variables('masterVMNamePrefix'), copyIndex())]",
           "adminUsername": "[variables('adminUsername')]",
           "adminPassword": "[variables('adminPassword')]",
-          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-mesos-cluster.sh\n    permissions: \"0744\"\n -  encoding: gzip\n    content: !!binary |\n        H4sIAK3zr1YC/+2Y/2/jNBTAf+9fYW2Ruu1I3I0NjhV2OsYhJoE2HRwgJi7ynNc219SObKfbQONv59lO0i9r0pa7CSQuldo0fs/v5b1P7PcCSkkVZ3JItElAqX6nA1MQRpM/OwSPW6nGoGIuhQBuUik0OewdHfc7DygopuT88vWryx/jqzdff39xHl9c/YxDnZExeanPOAetnQE6ZYriCRXDVNxRPxLhhb6ThNqTJUE34OWcYFawOGd8zIaAv2ZEukGuYJDeUfRyQF9EKNDvd0vpVPCsSIBM0glE5j4H7c0lMGBFZmJ7ibA8z1LO7P1RyQ2YUBsFbFLOoUEkgzQDIoVXHgPkLEunEBucVhaGfHZSyu6SQqM10FKHidDumsJ/2RQUOTz6POrh57CeWNnLPlTu3lJtQJDnvdo/L9KvJfz/WLAJkIRLHR3MxpSUhlCZG+rs5yNQgHE26Ci1smGR0kKr0rizJ/1dk6+I15nzxXt+q1ID5K0fDUig+QgmcEppYLMcj6QurVGSg5owgfDMPHp4bOmvajK69+LLQmVn0cF+sGQ2V/LuHm/dxCNgiCX5Ds2QmcV+u/RLRCs34SvBZZKKIdnZWVTQxY2OMaEGA+mQWADgna7SvEKeXLPwj174Rfj7s9PnPcxT4CPAFJKIykQNN9I9Pu5VunykpLDxW1bdRXgRB5YQOUCq7J0UuQeT3CJjBcZkIBVHfjFRYUnZJ4/mIJwhkpmPDR8xMQS9IoA505rYEGNyvXDk8nR60jvp0QBTFaQ6ZmqoA/s1n+SVPGmDp7wRKD/cSpQX2RSsWvx9WPovxRxDnjaE/AmwvwvfsSnTXKW5aUZ4p0tplzwjNnL406U77lIwy5qCJFXLMsO1tNj1tXn1caOtrDiJjVEppf8HpKwKd70E+1xdv6VuNWtej5e2Aa8WHWBCUIFkTJutDKIhnbEp2KDajezMebDfbB9zgrm3KixJFOl257Ywe0ykgphjWFSciryoEqiXH4n+Fnd1g5kcr1SIb+5jW4S4ksDVHAt34+qPTjtZ5bHdtlYev4avgWXhxRUJFEwk+mODsqnut1LdMpVAYs9I4AVxgvguHlRD9mz7+a6UNLJ6RFcGYJ7hWTrXo+NEa2rS5Owad1HcS1+Gv4X/KjfesQVv3gOgj+B8cHCwWE65R8efLsITIT30xYyflfh4RZvRD89P6d+iS9jCIEN0e4j8bB8xasVoLqGrbLhdAFvdGjdXY1SJCmqMKFl1cfMZt1dfp7LqIcCdzbCEGbZENvKCfaZ5zFAl7yFqndp1lJX8Yi2FvTHTrZ1orQeG07XFYdVeNZclpUBTiVi3Z6314S756fKbyz0+YZkUcL9/Sn5gYyBmBOQXuCFvLtzrEFuzMVsU+7xIdR81VDyV1b3HS8s/6XDnV8EJ1lx1CWgbURocbteelW1nY0jL8YaI1k3r5k1/pfLU0bCt9XbRoPl4mDORsBLR6KZIM1y3BzIaFFkW2TcCSx7bFav09ZxhfMJzfKKUzMiOkCG3V5aar7ZHYpW99c+EnSVOxJpXNlairXGy41u/unFKT0714dGnbXn03w+dvwGVUmSwwxQAAA==\n    path: /opt/azure/containers/nginx.conf\n    permissions: \"0744\"\n\n')]",
+          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-mesos-cluster.sh\n    permissions: \"0744\"\n -  encoding: gzip\n    content: !!binary |\n        H4sIALJhuVYC/+2Y/2/jNBTAf+9fYW2Ruu1I3I0NjhV2OsYhJoE2HRwgJi7ynNc219SObKfbQONv59lO0i9r0pa7CSQuldo0fs/v5b1P7PcCSkkVZ3JItElAqX6nA1MQRpM/OwSPW6nGoGIuhQBuUik0OewdHfc7DygopuT88vWryx/jqzdff39xHl9c/YxDnZExeanPOAetnQE6ZYriCRXDVNxRPxLhhb6ThNqTJUE34OWcYFawOGd8zIaAv2ZEukGuYJDeUfRyQF9EKNDvd0vpVPCsSIBM0glE5j4H7c0lMGBFZmJ7ibA8z1LO7P1RyQ2YUBsFbFLOoUEkgzQDIoVXHgPkLEunEBucVhaGfHZSyu6SQqM10FKHidDumsJ/2RQUOTz6POrh57CeWNnLPlTu3lJtQJDnvdo/L9KvJfz/WLAJkIRLHR3MxpSUhlCZG+rs5yNQgHE26Ci1smGR0kKr0rizJ/1dk6+I15nzxXt+q1ID5K0fDUig+QgmcEppYLMcj6QurVGSg5owgfDMPHp4bOmvajK69+LLQmVn0cF+sGQ2V/LuHm/dxCNgiCX5Ds2QmcV+u/RLRCs34SvBZZKKIdnZWVTQxY2OMaEGA+mQWADgna7SvEKeXLPwj174Rfj7s9PnPcxT4CPAFJKIykQNN9I9Pu5VunykpLDxW1bdRXgRB5YQOUCq7J0UuQeT3CJjBcZkIBVHfjFRYUnZJ4/mIJwhkpmPDR8xMQS9IoA505rYEGNyvXDk8nR60jvp0QBTFaQ6ZmqoA/s1n+SVPGmDp7wRKD/cSpQX2RSsWvx9WPovxRxDnjaE/AmwvwvfsSnTXKW5aUZ4p0tplzwjNnL406U77lIwy5qCJFXLMsO1tNj1tXn1caOtrDiJjVEppf8HpKwKd70E+1xdv6VuNWtej5e2Aa8WHWBCUIFkTJutDKIhnbEp2KDajezMebDfbB9zgrm3KixJFOl257Ywe0ykgphjWFSciryoEqiXH4n+Fnd1g5kcr1SIb+5jW4S4ksDVHAt34+qPTjtZ5bHdtlYev4avgWXhxRUJFEwk+mODsqnut1LdMpVAYs9I4AVxgvguHlRD9mz7+a6UNLJ6RFcGYJ7hWTrXo+NEa2rS5Owad1HcS1+Gv4X/KjfesQVv3gOgj+B8cHCwWE65R8efLsITIT30xYyflfh4RZvRD89P6d+iS9jCIEN0e4j8bB8xasVoLqGrbLhdAFvdGjdXY1SJCmqMKFl1cfMZt1dfp7LqIcCdzbCEGbZENvKCfaZ5zFAl7yFqndp1lJX8Yi2FvTHTrZ1orQeG07XFYdVeNZclpUBTiVi3Z6314S756fKbyz0+YZkUcL9/Sn5gYyBmBOQXuCFvLtzrEFuzMVsU+7xIdR81VDyV1b3HS8s/6XDnV8EJ1lx1CWgbURocbteelW1nY0jL8YaI1k3r5k1/pfLU0bCt9XbRoPl4mDORsBLR6KZIM1y3BzIaFFkW2TcCSx7bFav09ZxhfMJzfKKUzMiOkCG3V5aar7ZHYpW99c+EnSVOxJpXNlairXGy41u/unFKT0714dGnbXn03w+dvwGVUmSwwxQAAA==\n    path: /opt/azure/containers/nginx.conf\n    permissions: \"0744\"\n\n')]",
           "linuxConfiguration": "[variables('linuxConfiguration')]"
         },
         "storageProfile": {
@@ -703,7 +852,7 @@
         "count": "[variables('agentStorageAccountsCount')]"
       },
       "properties": {
-        "accountType": "[variables('storageAccountType')]"
+        "accountType":"[variables('vmSizesMap')[variables('agentVMSize')].storageAccountType]"
       }
     },
     {
@@ -932,7 +1081,7 @@
           "osProfile": {
             "computerNamePrefix": "[variables('agentVMNamePrefix')]",
             "adminUsername": "[variables('adminUsername')]",
-            "customData": "[base64(concat('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-mesos-cluster.sh\n    permissions: \"0744\"\n -  encoding: gzip\n    content: !!binary |\n        H4sIAK3zr1YC/+2Y/2/jNBTAf+9fYW2Ruu1I3I0NjhV2OsYhJoE2HRwgJi7ynNc219SObKfbQONv59lO0i9r0pa7CSQuldo0fs/v5b1P7PcCSkkVZ3JItElAqX6nA1MQRpM/OwSPW6nGoGIuhQBuUik0OewdHfc7DygopuT88vWryx/jqzdff39xHl9c/YxDnZExeanPOAetnQE6ZYriCRXDVNxRPxLhhb6ThNqTJUE34OWcYFawOGd8zIaAv2ZEukGuYJDeUfRyQF9EKNDvd0vpVPCsSIBM0glE5j4H7c0lMGBFZmJ7ibA8z1LO7P1RyQ2YUBsFbFLOoUEkgzQDIoVXHgPkLEunEBucVhaGfHZSyu6SQqM10FKHidDumsJ/2RQUOTz6POrh57CeWNnLPlTu3lJtQJDnvdo/L9KvJfz/WLAJkIRLHR3MxpSUhlCZG+rs5yNQgHE26Ci1smGR0kKr0rizJ/1dk6+I15nzxXt+q1ID5K0fDUig+QgmcEppYLMcj6QurVGSg5owgfDMPHp4bOmvajK69+LLQmVn0cF+sGQ2V/LuHm/dxCNgiCX5Ds2QmcV+u/RLRCs34SvBZZKKIdnZWVTQxY2OMaEGA+mQWADgna7SvEKeXLPwj174Rfj7s9PnPcxT4CPAFJKIykQNN9I9Pu5VunykpLDxW1bdRXgRB5YQOUCq7J0UuQeT3CJjBcZkIBVHfjFRYUnZJ4/mIJwhkpmPDR8xMQS9IoA505rYEGNyvXDk8nR60jvp0QBTFaQ6ZmqoA/s1n+SVPGmDp7wRKD/cSpQX2RSsWvx9WPovxRxDnjaE/AmwvwvfsSnTXKW5aUZ4p0tplzwjNnL406U77lIwy5qCJFXLMsO1tNj1tXn1caOtrDiJjVEppf8HpKwKd70E+1xdv6VuNWtej5e2Aa8WHWBCUIFkTJutDKIhnbEp2KDajezMebDfbB9zgrm3KixJFOl257Ywe0ykgphjWFSciryoEqiXH4n+Fnd1g5kcr1SIb+5jW4S4ksDVHAt34+qPTjtZ5bHdtlYev4avgWXhxRUJFEwk+mODsqnut1LdMpVAYs9I4AVxgvguHlRD9mz7+a6UNLJ6RFcGYJ7hWTrXo+NEa2rS5Owad1HcS1+Gv4X/KjfesQVv3gOgj+B8cHCwWE65R8efLsITIT30xYyflfh4RZvRD89P6d+iS9jCIEN0e4j8bB8xasVoLqGrbLhdAFvdGjdXY1SJCmqMKFl1cfMZt1dfp7LqIcCdzbCEGbZENvKCfaZ5zFAl7yFqndp1lJX8Yi2FvTHTrZ1orQeG07XFYdVeNZclpUBTiVi3Z6314S756fKbyz0+YZkUcL9/Sn5gYyBmBOQXuCFvLtzrEFuzMVsU+7xIdR81VDyV1b3HS8s/6XDnV8EJ1lx1CWgbURocbteelW1nY0jL8YaI1k3r5k1/pfLU0bCt9XbRoPl4mDORsBLR6KZIM1y3BzIaFFkW2TcCSx7bFav09ZxhfMJzfKKUzMiOkCG3V5aar7ZHYpW99c+EnSVOxJpXNlairXGy41u/unFKT0714dGnbXn03w+dvwGVUmSwwxQAAA==\n    path: /opt/azure/containers/nginx.conf\n    permissions: \"0744\"\n\n',variables('agentRunCmdFile'),variables('agentRunCmd')))]",
+            "customData": "[base64(concat('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-mesos-cluster.sh\n    permissions: \"0744\"\n -  encoding: gzip\n    content: !!binary |\n        H4sIALJhuVYC/+2Y/2/jNBTAf+9fYW2Ruu1I3I0NjhV2OsYhJoE2HRwgJi7ynNc219SObKfbQONv59lO0i9r0pa7CSQuldo0fs/v5b1P7PcCSkkVZ3JItElAqX6nA1MQRpM/OwSPW6nGoGIuhQBuUik0OewdHfc7DygopuT88vWryx/jqzdff39xHl9c/YxDnZExeanPOAetnQE6ZYriCRXDVNxRPxLhhb6ThNqTJUE34OWcYFawOGd8zIaAv2ZEukGuYJDeUfRyQF9EKNDvd0vpVPCsSIBM0glE5j4H7c0lMGBFZmJ7ibA8z1LO7P1RyQ2YUBsFbFLOoUEkgzQDIoVXHgPkLEunEBucVhaGfHZSyu6SQqM10FKHidDumsJ/2RQUOTz6POrh57CeWNnLPlTu3lJtQJDnvdo/L9KvJfz/WLAJkIRLHR3MxpSUhlCZG+rs5yNQgHE26Ci1smGR0kKr0rizJ/1dk6+I15nzxXt+q1ID5K0fDUig+QgmcEppYLMcj6QurVGSg5owgfDMPHp4bOmvajK69+LLQmVn0cF+sGQ2V/LuHm/dxCNgiCX5Ds2QmcV+u/RLRCs34SvBZZKKIdnZWVTQxY2OMaEGA+mQWADgna7SvEKeXLPwj174Rfj7s9PnPcxT4CPAFJKIykQNN9I9Pu5VunykpLDxW1bdRXgRB5YQOUCq7J0UuQeT3CJjBcZkIBVHfjFRYUnZJ4/mIJwhkpmPDR8xMQS9IoA505rYEGNyvXDk8nR60jvp0QBTFaQ6ZmqoA/s1n+SVPGmDp7wRKD/cSpQX2RSsWvx9WPovxRxDnjaE/AmwvwvfsSnTXKW5aUZ4p0tplzwjNnL406U77lIwy5qCJFXLMsO1tNj1tXn1caOtrDiJjVEppf8HpKwKd70E+1xdv6VuNWtej5e2Aa8WHWBCUIFkTJutDKIhnbEp2KDajezMebDfbB9zgrm3KixJFOl257Ywe0ykgphjWFSciryoEqiXH4n+Fnd1g5kcr1SIb+5jW4S4ksDVHAt34+qPTjtZ5bHdtlYev4avgWXhxRUJFEwk+mODsqnut1LdMpVAYs9I4AVxgvguHlRD9mz7+a6UNLJ6RFcGYJ7hWTrXo+NEa2rS5Owad1HcS1+Gv4X/KjfesQVv3gOgj+B8cHCwWE65R8efLsITIT30xYyflfh4RZvRD89P6d+iS9jCIEN0e4j8bB8xasVoLqGrbLhdAFvdGjdXY1SJCmqMKFl1cfMZt1dfp7LqIcCdzbCEGbZENvKCfaZ5zFAl7yFqndp1lJX8Yi2FvTHTrZ1orQeG07XFYdVeNZclpUBTiVi3Z6314S756fKbyz0+YZkUcL9/Sn5gYyBmBOQXuCFvLtzrEFuzMVsU+7xIdR81VDyV1b3HS8s/6XDnV8EJ1lx1CWgbURocbteelW1nY0jL8YaI1k3r5k1/pfLU0bCt9XbRoPl4mDORsBLR6KZIM1y3BzIaFFkW2TcCSx7bFav09ZxhfMJzfKKUzMiOkCG3V5aar7ZHYpW99c+EnSVOxJpXNlairXGy41u/unFKT0714dGnbXn03w+dvwGVUmSwwxQAAA==\n    path: /opt/azure/containers/nginx.conf\n    permissions: \"0744\"\n\n',variables('agentRunCmdFile'),variables('agentRunCmd')))]",
             "linuxConfiguration": "[variables('linuxConfiguration')]"
           },
           "networkProfile": {

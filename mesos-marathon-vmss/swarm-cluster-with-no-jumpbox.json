@@ -84,15 +84,21 @@
     },
     "agentVMSize": {
       "type": "string",
-      "defaultValue": "Standard_A1",
+      "defaultValue": "Standard_D2",
       "allowedValues": [
-        "Standard_A1",
-        "Standard_A2",
-        "Standard_A3",
-        "Standard_A4"
-      ],
+		"Standard_A0", "Standard_A1", "Standard_A2", "Standard_A3", "Standard_A4", "Standard_A5",
+		"Standard_A6", "Standard_A7", "Standard_A8", "Standard_A9", "Standard_A10", "Standard_A11",
+		"Standard_D1", "Standard_D2", "Standard_D3", "Standard_D4",
+		"Standard_D11", "Standard_D12", "Standard_D13", "Standard_D14",
+		"Standard_D1_v2", "Standard_D2_v2", "Standard_D3_v2", "Standard_D4_v2", "Standard_D5_v2",
+		"Standard_D11_v2", "Standard_D12_v2", "Standard_D13_v2", "Standard_D14_v2",
+		"Standard_G1", "Standard_G2", "Standard_G3", "Standard_G4", "Standard_G5",
+		"Standard_DS1", "Standard_DS2", "Standard_DS3", "Standard_DS4",
+		"Standard_DS11", "Standard_DS12", "Standard_DS13", "Standard_DS14",
+		"Standard_GS1", "Standard_GS2", "Standard_GS3", "Standard_GS4", "Standard_GS5"
+	  ],
       "metadata": {
-        "description": "The size of the Virtual Machine. Allowable machine values are 1 core (A1), 2 core (A2), 4 core (A3), 8 core (A4)."
+        "description": "The size of the Virtual Machine."
       }
     },
     "linuxPublisher": {
@@ -291,7 +297,7 @@
     "masterFirstAddr": 5,
     "masterAvailabilitySet": "[concat(variables('orchestratorName'), '-master-availabilitySet-', variables('nameSuffix'))]",
     "masterLbName": "[concat(variables('orchestratorName'), '-master-lb-', variables('nameSuffix'))]",
-    "masterVMSize":"Standard_A1",
+    "masterVMSize":"Standard_A2",
     "masterLbID": "[resourceId('Microsoft.Network/loadBalancers',variables('masterLbName'))]",
     "masterLbIPConfigName": "[concat(variables('orchestratorName'), '-master-lbFrontEnd-', variables('nameSuffix'))]",
     "masterLbIPConfigID": "[concat(variables('masterLbID'),'/frontendIPConfigurations/', variables('masterLbIPConfigName'))]",
@@ -312,7 +318,150 @@
     "agentsPerIPv4Octet": 200,
     "agentCustomScript": "[concat('/usr/bin/nohup /bin/bash -c \"/bin/bash /opt/azure/containers/configure-swarm-cluster.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/cluster-bootstrap.log 2>&1 &\" &')]",
     "agentRunCmdFile": "[concat(' -  content: |\n        #!/bin/bash\n        ',variables('agentCustomScript'),'\n    path: /opt/azure/containers/install-cluster.sh\n    permissions: \"0744\"\n')]",
-    "agentRunCmd": "[concat('runcmd:\n -  [ /bin/bash, /opt/azure/containers/install-cluster.sh ]\n\n')]"
+    "agentRunCmd": "[concat('runcmd:\n -  [ /bin/bash, /opt/azure/containers/install-cluster.sh ]\n\n')]",
+	 "vmSizesMap": {
+         "Standard_A0": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A1": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A3": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A4": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A5": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A6": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A7": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A8": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A9": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A10": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_A11": {
+           "storageAccountType":"Standard_GRS"
+         }, 
+         "Standard_D1": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D3": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D4": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D11": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D12": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D13": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D14": {
+           "storageAccountType":"Standard_GRS"
+         }, 
+         "Standard_D1_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D2_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D3_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D4_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D5_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D11_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D12_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D13_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_D14_v2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_G1": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_G2": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_G3": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_G4": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_G5": {
+           "storageAccountType":"Standard_GRS"
+         },
+         "Standard_DS1": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_DS2": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_DS3": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_DS4": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_DS11": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_DS12": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_DS13": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_DS14": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_GS1": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_GS2": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_GS3": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_GS4": {
+           "storageAccountType":"Premium_LRS"
+         },
+         "Standard_GS5": {
+           "storageAccountType":"Premium_LRS"
+         }
+    }
   },
   "resources": [
     {
@@ -321,7 +470,7 @@
       "apiVersion": "2015-06-15",
       "location": "[variables('storageLocation')]",
       "properties": {
-        "accountType": "[variables('storageAccountType')]"
+        "accountType":"[variables('vmSizesMap')[variables('masterVMSize')].storageAccountType]"
       }
     },
     {
@@ -511,7 +660,7 @@
           "computername": "[concat(variables('masterVMNamePrefix'), copyIndex())]",
           "adminUsername": "[variables('adminUsername')]",
           "adminPassword": "[variables('adminPassword')]",
-          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-swarm-cluster.sh\n    permissions: \"0744\"\n\n')]",
+          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-swarm-cluster.sh\n    permissions: \"0744\"\n\n')]",
           "linuxConfiguration": "[variables('linuxConfiguration')]"
         },
         "storageProfile": {
@@ -571,7 +720,7 @@
         "count": "[variables('agentStorageAccountsCount')]"
       },
       "properties": {
-        "accountType": "[variables('storageAccountType')]"
+        "accountType":"[variables('vmSizesMap')[variables('agentVMSize')].storageAccountType]"
       }
     },
     {
@@ -804,7 +953,7 @@
           "osProfile": {
             "computerNamePrefix": "[variables('agentVMNamePrefix')]",
             "adminUsername": "[variables('adminUsername')]",
-            "customData": "[base64(concat('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-swarm-cluster.sh\n    permissions: \"0744\"\n\n',variables('agentRunCmdFile'),variables('agentRunCmd')))]",
+            "customData": "[base64(concat('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-swarm-cluster.sh\n    permissions: \"0744\"\n\n',variables('agentRunCmdFile'),variables('agentRunCmd')))]",
             "linuxConfiguration": "[variables('linuxConfiguration')]"
           },
           "networkProfile": {

@@ -16,7 +16,7 @@ echo "starting mesos cluster configuration"
 date
 ps ax
 
-SWARM_VERSION="swarm:1.0.0"
+SWARM_VERSION="swarm:1.1.0"
 #############
 # Parameters
 #############

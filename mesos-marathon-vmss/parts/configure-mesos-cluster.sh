@@ -15,7 +15,7 @@ echo "starting mesos cluster configuration"
 date
 ps ax
 
-SWARM_VERSION="ahmet/swarm:1.0.0-zk-hotfix"
+SWARM_VERSION="swarm:1.1.0"
 #############
 # Parameters
 #############
@@ -389,6 +389,8 @@ fi
 if isagent ; then
   # Add docker containerizer
   echo "docker,mesos" | sudo tee /etc/mesos-slave/containerizers
+  # Add timeout for agent to download docker
+  echo '5mins' > /etc/mesos-slave/executor_registration_timeout
   # Add resources configuration
   if ismaster ; then
     echo "ports:[1-21,23-79,81-4399,4401-5049,5052-8079,8081-32000]" | sudo tee /etc/mesos-slave/resources

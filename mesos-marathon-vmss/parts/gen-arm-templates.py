@@ -46,13 +46,14 @@ def convertToOneArmTemplateLine(clusterYamlFile):
     return  clusterYamlFile.replace("\n", "\\n").replace('"', '\\"')
 
 # Loads the base ARM template file and injects the Yaml for the shell scripts into it.
-def processBaseTemplate(baseTemplatePath, clusterInstallScript, jumpboxTemplatePath, linuxJumpboxInstallScript, additionalFiles):
+def processBaseTemplate(baseTemplatePath, clusterInstallScript, jumpboxTemplatePath, linuxJumpboxInstallScript, additionalFiles, vmsizeMappingsFile):
 
     #String to replace in JSON file
     CLUSTER_YAML_REPLACE_STRING  = "#clusterCustomDataInstallYaml"
     JUMPBOX_FRAGMENT_REPLACE_STRING = "#jumpboxFragment"
     JUMPBOX_FQDN_REPLACE_STRING = "#jumpboxFQDN"
     JUMPBOX_LINUX_YAML_REPLACE_STRING = "#jumpboxLinuxCustomDataInstallYaml"
+    VMSIZE_MAPPINGS_STRING = "#vmsizemapping"
 
     armTemplate = []
     with open(baseTemplatePath) as f:
@@ -66,7 +67,8 @@ def processBaseTemplate(baseTemplatePath, clusterInstallScript, jumpboxTemplateP
     jumpboxTemplate = ""
     jumpboxFQDN = ""
     linuxJumpboxYamlFile = ""
-
+    vmsizeMappings = ""
+    
     if jumpboxTemplatePath != None :
         # Add Jumpbox FQDN Fragment if jumpboxTemplatePath is defined
         jumpboxFQDN = "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('jumpboxPublicIPAddressName'))).dnsSettings.fqdn]"
@@ -79,10 +81,16 @@ def processBaseTemplate(baseTemplatePath, clusterInstallScript, jumpboxTemplateP
             # the linux jumpbox does not need the nginx configuration file
             linuxJumpboxYamlFile = convertToOneArmTemplateLine(buildYamlFileWithWriteFiles([linuxJumpboxInstallScript]))
 
+            
+    if vmsizeMappingsFile != None :
+        with open(vmsizeMappingsFile) as f:
+            vmsizeMappings = f.read()
+            
     # Want these to be replaced with blank strings if jumpboxTemplatePath is None
     armTemplate = armTemplate.replace(JUMPBOX_FRAGMENT_REPLACE_STRING, jumpboxTemplate)
     armTemplate = armTemplate.replace(JUMPBOX_FQDN_REPLACE_STRING, jumpboxFQDN)
     armTemplate = armTemplate.replace(JUMPBOX_LINUX_YAML_REPLACE_STRING, linuxJumpboxYamlFile)
+    armTemplate = armTemplate.replace(VMSIZE_MAPPINGS_STRING, vmsizeMappings)
 
     # Make sure the final string is valid JSON
     try:
@@ -122,6 +130,7 @@ if __name__ == "__main__":
     ARM_INPUT_WINDOWS_JUMPBOX_TEMPLATE = "fragment-windows-jumpbox.json"
     ARM_INPUT_LINUX_JUMPBOX_TEMPLATE   = "fragment-linux-jumpbox.json"
     ARM_INPUT_SWARM_TEMPLATE_TEMPLATE  = "base-swarm-template.json"
+    ARM_INPUT_VMSIZE_MAPPING_TEMPLATE  = "vmsizes-storage-account-mappings.json"
 
     # Shell Scripts to load into YAML
     MESOS_CLUSTER_INSTALL_SCRIPT = "configure-mesos-cluster.sh"
@@ -139,22 +148,22 @@ if __name__ == "__main__":
 
     # build the ARM template for jumpboxless
     with open(os.path.join(args.output_directory, ARM_OUTPUT_TEMPLATE), "w") as armTemplate:
-        clusterTemplate = processBaseTemplate(ARM_INPUT_TEMPLATE_TEMPLATE, MESOS_CLUSTER_INSTALL_SCRIPT, None, None, [ADMIN_ROUTER_CONF])
+        clusterTemplate = processBaseTemplate(ARM_INPUT_TEMPLATE_TEMPLATE, MESOS_CLUSTER_INSTALL_SCRIPT, None, None, [ADMIN_ROUTER_CONF], ARM_INPUT_VMSIZE_MAPPING_TEMPLATE) 
         armTemplate.write(clusterTemplate)
 
     # build the ARM template for linux jumpbox
     with open(os.path.join(args.output_directory,ARM_OUTPUT_TEMPLATE_LINUX_JUMPBOX), "w") as armTemplate:
-        clusterTemplate = processBaseTemplate(ARM_INPUT_TEMPLATE_TEMPLATE, MESOS_CLUSTER_INSTALL_SCRIPT, ARM_INPUT_LINUX_JUMPBOX_TEMPLATE, LINUX_JUMPBOX_INSTALL_SCRIPT,  [ADMIN_ROUTER_CONF])
+        clusterTemplate = processBaseTemplate(ARM_INPUT_TEMPLATE_TEMPLATE, MESOS_CLUSTER_INSTALL_SCRIPT, ARM_INPUT_LINUX_JUMPBOX_TEMPLATE, LINUX_JUMPBOX_INSTALL_SCRIPT,  [ADMIN_ROUTER_CONF], ARM_INPUT_VMSIZE_MAPPING_TEMPLATE)
         armTemplate.write(clusterTemplate)
 
     # build the ARM template for windows jumpbox
     with open(os.path.join(args.output_directory, ARM_OUTPUT_TEMPLATE_WINDOWS_JUMPBOX), "w") as armTemplate:
-        clusterTemplate = processBaseTemplate(ARM_INPUT_TEMPLATE_TEMPLATE, MESOS_CLUSTER_INSTALL_SCRIPT, ARM_INPUT_WINDOWS_JUMPBOX_TEMPLATE, None,  [ADMIN_ROUTER_CONF])
+        clusterTemplate = processBaseTemplate(ARM_INPUT_TEMPLATE_TEMPLATE, MESOS_CLUSTER_INSTALL_SCRIPT, ARM_INPUT_WINDOWS_JUMPBOX_TEMPLATE, None,  [ADMIN_ROUTER_CONF], ARM_INPUT_VMSIZE_MAPPING_TEMPLATE)
         armTemplate.write(clusterTemplate)
 
     # build the SWARM ARM template
     with open(os.path.join(args.output_directory, ARM_OUTPUT_SWARM_TEMPLATE), "w") as armTemplate:
-        clusterTemplate = processBaseTemplate(ARM_INPUT_SWARM_TEMPLATE_TEMPLATE, SWARM_CLUSTER_INSTALL_SCRIPT, None, None, [])
+        clusterTemplate = processBaseTemplate(ARM_INPUT_SWARM_TEMPLATE_TEMPLATE, SWARM_CLUSTER_INSTALL_SCRIPT, None, None, [], ARM_INPUT_VMSIZE_MAPPING_TEMPLATE)
         armTemplate.write(clusterTemplate)
 
     # Write parameter files if specified
