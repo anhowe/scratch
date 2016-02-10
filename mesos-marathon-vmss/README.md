@@ -152,9 +152,9 @@ This walk through is based the wonderful digital ocean tutorial: https://www.dig
 ## Explore Swarm with Simple hello world
  1. After successfully deploying the template write down the two output master and agent FQDNs.
  2. SSH to port 2200 of the master FQDN
- 3. Type `docker -H 172.6.0.5:2375 info` to see the status of the agent nodes.
+ 3. Type `docker -H 172.16.0.5:2375 info` to see the status of the agent nodes.
  ![Image of docker info](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/dockerinfo.png)
- 4. Type `docker -H 172.6.0.5:2375 run hello-world` to see the hello-world test app run on one of the agents
+ 4. Type `docker -H 172.16.0.5:2375 run hello-world` to see the hello-world test app run on one of the agents
 
 ## Explore Swarm with a web-based Compose Script, then scale the script to all agents
  1. After successfully deploying the template write down the two output master and agent FQDNs.
@@ -166,7 +166,7 @@ web:
     - "80:80"
   restart: "always"
 ```
- 3.  type `export DOCKER_HOST=172.6.0.5:2375` so that docker-compose automatically hits the swarm endpoints
+ 3.  type `export DOCKER_HOST=172.16.0.5:2375` so that docker-compose automatically hits the swarm endpoints
  4. type `docker-compose up -d` to create the simple web server.  this will take about a minute to pull the image
  5. once completed, type `docker ps` to see the running image.
  ![Image of docker ps](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/dockerps.png)
