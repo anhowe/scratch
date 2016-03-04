@@ -13,16 +13,24 @@
       "metadata": {
         "description": "Unique DNS Name for the Public IP used to access the Virtual Machine."
       }
+    },
+    "sshRSAPublicKey": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "SSH public key used for auth to all Linux machines.  Not Required.  If not set, you must provide a password key."
+      }
     }
   },
   "variables": {
     "adminPassword": "[parameters('adminPassword')]",
     "masterEndpointDNSNamePrefix": "[parameters('masterEndpointDNSNamePrefix')]",
+    "sshRSAPublicKey": "[parameters('sshRSAPublicKey')]",
     "newStorageAccountName": "[concat(uniqueString(variables('masterEndpointDNSNamePrefix')))]",
     "adminUsername": "azureuser",
-    "osImagePublisher": "Canonical",
-    "osImageOffer": "UbuntuServer",
-    "osImageSKU": "14.04.3-LTS",
+    "osImagePublisher": "CoreOS",
+    "osImageOffer": "CoreOS",
+    "osImageSKU": "Beta",
     "osImageVersion": "latest",
     "nicName": "myVMNic",
     "addressPrefix": "10.0.0.0/16",
@@ -35,7 +43,8 @@
     "vmSize": "Standard_D2",
     "virtualNetworkName": "MyVNET",
     "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
-    "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]"
+    "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
+    "sshKeyPath": "[concat('/home/', variables('adminUsername'), '/.ssh/authorized_keys')]"
   },
   "resources": [
     {
@@ -122,7 +131,17 @@
         "osProfile": {
           "computername": "[variables('vmName')]",
           "adminUsername": "[variables('adminUsername')]",
-          "adminPassword": "[variables('adminPassword')]"
+          "adminPassword": "[variables('adminPassword')]",
+          "linuxConfiguration": {
+              "ssh": {
+                  "publicKeys": [
+                      {
+                          "path": "[variables('sshKeyPath')]",
+                          "keyData": "[variables('sshRSAPublicKey')]"
+                      }
+                  ]
+              }
+          }
         },
         "storageProfile": {
           "imageReference": {
