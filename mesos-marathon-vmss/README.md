@@ -4,10 +4,10 @@ These Microsoft Azure templates create various cluster combinations with Mesos/M
 
 Portal Launch Button|Cluster Type|Walkthrough Instructions
 --- | --- | ---
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fmesos-cluster-with-no-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Mesos with no jumpbox|[Mesos Cluster Walkthrough](#mesos-cluster-walkthrough)
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fmesos-cluster-with-windows-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Mesos with windows jumpbox|[Mesos Cluster Walkthrough](#mesos-cluster-walkthrough)
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fmesos-cluster-with-linux-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Mesos with linux jumpbox|[Mesos Cluster Walkthrough](#mesos-cluster-walkthrough)
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon%2Fswarm-cluster-with-no-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Swarm Cluster|[Swarm Cluster Walkthrough](#swarm-cluster-walkthrough)
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon-vmss%2Fmesos-cluster-with-no-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Mesos with no jumpbox|[Mesos Cluster Walkthrough](#mesos-cluster-walkthrough)
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon-vmss%2Fmesos-cluster-with-windows-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Mesos with windows jumpbox|[Mesos Cluster Walkthrough](#mesos-cluster-walkthrough)
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon-vmss%2Fmesos-cluster-with-linux-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Mesos with linux jumpbox|[Mesos Cluster Walkthrough](#mesos-cluster-walkthrough)
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon-vmss%2Fswarm-cluster-with-no-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Swarm Cluster|[Swarm Cluster Walkthrough](#swarm-cluster-walkthrough)
 
 # Mesos Cluster Walkthrough
 
