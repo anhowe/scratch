@@ -105,7 +105,7 @@
       "type": "bool",
       "defaultValue": true,
       "metadata": {
-        "description": "Allows user to enable/disable boot & vm diagnostics."
+        "description": "Allows user to enable/disable Boot and VM diagnostics."
       }
     },
     "linuxPublisher": {
@@ -272,7 +272,6 @@
     "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
     "addressPrefix": "10.0.0.0/8",
     "subnetPrefix": "10.0.0.0/11",
-    "storageAccountType": "Standard_GRS",
     "storageAccountPrefixes": [
       "0","6","c","i","o","u","1","7","d","j","p","v",
       "2","8","e","k","q","w","3","9","f","l","r","x",
@@ -304,7 +303,7 @@
     "masterFirstAddr": 5,
     "masterAvailabilitySet": "[concat(variables('orchestratorName'), '-master-availabilitySet-', variables('nameSuffix'))]",
     "masterLbName": "[concat(variables('orchestratorName'), '-master-lb-', variables('nameSuffix'))]",
-    "masterVMSize": "Standard_A2",
+    "masterVMSize": "Standard_D2",
     "masterLbID": "[resourceId('Microsoft.Network/loadBalancers',variables('masterLbName'))]",
     "masterLbIPConfigName": "[concat(variables('orchestratorName'), '-master-lbFrontEnd-', variables('nameSuffix'))]",
     "masterLbIPConfigID": "[concat(variables('masterLbID'),'/frontendIPConfigurations/', variables('masterLbIPConfigName'))]",
@@ -341,14 +340,22 @@
     "wadperfcounters2-false": "",
     "wadcfgxstart": "[concat(variables('wadlogs'),variables(concat('wadperfcounters1','-',variables('enableVMDiagnostics'))),variables(concat('wadperfcounters2','-',variables('enableVMDiagnostics'))),'<Metrics resourceId=\"')]",    
     "wadcfgxend": "[concat('\"><MetricAggregation scheduledTransferPeriod=\"PT1H\"/><MetricAggregation scheduledTransferPeriod=\"PT1M\"/></Metrics></DiagnosticMonitorConfiguration></WadCfg>')]",
+    
+    "computeApiVersion": "2016-03-30",
+    "networkApiVersion": "2016-03-30",
+    "storageApiVersion": "2015-06-15",
+    
      #vmsizemapping
   },
   "resources": [
     {
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[variables('masterStorageAccountName')]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('storageApiVersion')]",
       "location": "[variables('storageLocation')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('masterPublicIPAddressName'))]"
+      ],
       "properties": {
         "accountType":"[variables('vmSizesMap')[variables('masterVMSize')].storageAccountType]"
       }
@@ -356,14 +363,14 @@
     {
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[variables('diagnosticsStorageAccountName')]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('storageApiVersion')]",
       "location": "[variables('storageLocation')]",
       "properties": {
         "accountType": "[variables('vmSizesMap')[variables('masterVMSize')].storageAccountType]"
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "type": "Microsoft.Network/virtualNetworks",
       "name": "[variables('virtualNetworkName')]",
       "location": "[resourceGroup().location]",
@@ -391,14 +398,14 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('computeApiVersion')]",
       "type": "Microsoft.Compute/availabilitySets",
       "name": "[variables('masterAvailabilitySet')]",
       "location": "[resourceGroup().location]",
       "properties": {}
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "type": "Microsoft.Network/publicIPAddresses",
       "name": "[variables('masterPublicIPAddressName')]",
       "location": "[resourceGroup().location]",
@@ -410,7 +417,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "name": "[variables('masterLbName')]",
       "type": "Microsoft.Network/loadBalancers",
       "location": "[resourceGroup().location]",
@@ -436,7 +443,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "type": "Microsoft.Network/loadBalancers/inboundNatRules",
       "name": "[concat(variables('masterLbName'), '/', 'SSH-', variables('masterVMNamePrefix'), copyIndex())]",
       "location": "[resourceGroup().location]",
@@ -458,7 +465,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "type": "Microsoft.Network/networkSecurityGroups",
       "name": "[variables('masterNSGName')]",
       "location": "[resourceGroup().location]",
@@ -482,7 +489,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "type": "Microsoft.Network/networkInterfaces",
       "name": "[concat(variables('masterVMNamePrefix'), 'nic-', copyIndex())]",
       "location": "[resourceGroup().location]",
@@ -525,7 +532,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('computeApiVersion')]",
       "type": "Microsoft.Compute/virtualMachines",
       "name": "[concat(variables('masterVMNamePrefix'), copyIndex())]",
       "location": "[resourceGroup().location]",
@@ -563,7 +570,7 @@
           "osDisk": {
             "name": "[concat(variables('masterVMNamePrefix'), copyIndex(),'-osdisk')]",
             "vhd": {
-              "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', variables('masterStorageAccountName')), '2015-06-15').primaryEndpoints.blob, 'vhds/', variables('masterVMNamePrefix'), copyIndex(), '-osdisk.vhd')]"
+              "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', variables('masterStorageAccountName')), variables('storageApiVersion')).primaryEndpoints.blob, 'vhds/', variables('masterVMNamePrefix'), copyIndex(), '-osdisk.vhd')]"
             },
             "caching": "ReadWrite",
             "createOption": "FromImage"
@@ -579,7 +586,7 @@
         "diagnosticsProfile": {
           "bootDiagnostics": {
             "enabled": "[variables('enableVMDiagnostics')]",
-            "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('diagnosticsStorageAccountName')), '2015-06-15').primaryEndpoints.blob]"
+            "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('diagnosticsStorageAccountName')), variables('storageApiVersion')).primaryEndpoints.blob]"
           }
         }
       }
@@ -587,7 +594,7 @@
     {
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(variables('masterVMNamePrefix'), copyIndex(), '/linuxdiagnostic')]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('computeApiVersion')]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "vmLoopNode",
@@ -608,14 +615,14 @@
         },
         "protectedSettings": {
             "storageAccountName": "[variables(concat('diagnosticsStorageAccountName', '-', variables('enableVMDiagnostics')))]",
-            "storageAccountKey": "[listKeys(variables('accountid'),'2015-06-15').key1]"
+            "storageAccountKey": "[listKeys(variables('accountid'), variables('storageApiVersion')).key1]"
         }
       }
     },
     {
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(variables('masterVMNamePrefix'), copyIndex(), '/configuremaster')]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('computeApiVersion')]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "vmLoopNode",
@@ -637,18 +644,21 @@
     {
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[concat(variables('storageAccountPrefixes')[mod(copyIndex(),variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(copyIndex(),variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),copyIndex(1))]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('storageApiVersion')]",
       "location": "[variables('storageLocation')]",
       "copy": {
         "name": "vmLoopNode",
         "count": "[variables('agentStorageAccountsCount')]"
       },
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('agentPublicIPAddressName'))]"
+      ],
       "properties": {
         "accountType": "[variables('vmSizesMap')[variables('agentVMSize')].storageAccountType]"
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "type": "Microsoft.Network/publicIPAddresses",
       "name": "[variables('agentPublicIPAddressName')]",
       "location": "[resourceGroup().location]",
@@ -660,7 +670,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "name": "[variables('agentsLbName')]",
       "type": "Microsoft.Network/loadBalancers",
       "location": "[resourceGroup().location]",
@@ -778,7 +788,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "type": "Microsoft.Network/networkSecurityGroups",
       "name": "[variables('agentNSGName')]",
       "location": "[resourceGroup().location]",
@@ -830,7 +840,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('computeApiVersion')]",
       "type": "Microsoft.Compute/virtualMachineScaleSets",
       "name": "[concat(variables('agentVMNamePrefix'), '-vmss')]",
       "location": "[resourceGroup().location]",
@@ -855,6 +865,9 @@
         "upgradePolicy": {
           "mode": "Automatic"
         },
+        "recoveryPolicy": {
+          "mode": "OverProvision"
+        },
         "virtualMachineProfile": {
           "storageProfile": {
             "imageReference": {
@@ -866,11 +879,11 @@
             "osDisk": {
               "name": "[concat(variables('agentVMNamePrefix'), 'vmssosdisk', 0)]",
               "vhdContainers": [
-               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(0,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(0,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),1), '2015-06-15').primaryEndpoints.blob, 'osdisk')]",
-               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(1,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(1,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),2), '2015-06-15').primaryEndpoints.blob, 'osdisk')]",
-               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(2,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(2,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),3), '2015-06-15').primaryEndpoints.blob, 'osdisk')]",
-               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(3,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(3,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),4), '2015-06-15').primaryEndpoints.blob, 'osdisk')]",
-               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(4,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(4,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),5), '2015-06-15').primaryEndpoints.blob, 'osdisk')]"
+               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(0,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(0,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),1), variables('storageApiVersion') ).primaryEndpoints.blob, 'osdisk')]",
+               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(1,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(1,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),2), variables('storageApiVersion')).primaryEndpoints.blob, 'osdisk')]",
+               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(2,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(2,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),3), variables('storageApiVersion')).primaryEndpoints.blob, 'osdisk')]",
+               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(3,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(3,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),4), variables('storageApiVersion')).primaryEndpoints.blob, 'osdisk')]",
+               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(4,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(4,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),5), variables('storageApiVersion')).primaryEndpoints.blob, 'osdisk')]"
 
               ],
               "caching": "ReadWrite",
@@ -927,7 +940,7 @@
                     },
                     "protectedSettings": {
                         "storageAccountName": "[variables(concat('diagnosticsStorageAccountName', '-', variables('enableVMDiagnostics')))]",
-                        "storageAccountKey": "[listKeys(variables('accountid'),'2015-06-15').key1]"
+                        "storageAccountKey": "[listKeys(variables('accountid'), variables('storageApiVersion')).key1]"
                     }
                 }       
               }
@@ -936,7 +949,7 @@
           "diagnosticsProfile": {
             "bootDiagnostics": {
               "enabled": "[variables('enableVMDiagnostics')]",
-              "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('diagnosticsStorageAccountName')), '2015-06-15').primaryEndpoints.blob]"
+              "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('diagnosticsStorageAccountName')), variables('storageApiVersion')).primaryEndpoints.blob]"
             }
           }
         }
@@ -958,7 +971,7 @@
     },
     "diagnosticsStorageAccountUri": {
       "type": "string",
-      "value": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('diagnosticsStorageAccountName')), '2015-06-15').primaryEndpoints.blob]"
+      "value": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('diagnosticsStorageAccountName')), variables('storageApiVersion')).primaryEndpoints.blob]"
     }
   }
 }

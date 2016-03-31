@@ -105,7 +105,7 @@
       "type": "bool",
       "defaultValue": true,
       "metadata": {
-        "description": "Allows user to enable/disable boot & vm diagnostics."
+        "description": "Allows user to enable/disable Boot and VM diagnostics."
       }
     },
     "linuxPublisher": {
@@ -272,7 +272,6 @@
     "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
     "addressPrefix": "10.0.0.0/8",
     "subnetPrefix": "10.0.0.0/11",
-    "storageAccountType": "Standard_GRS",
     "storageAccountPrefixes": [
       "0","6","c","i","o","u","1","7","d","j","p","v",
       "2","8","e","k","q","w","3","9","f","l","r","x",
@@ -304,7 +303,7 @@
     "masterFirstAddr": 5,
     "masterAvailabilitySet": "[concat(variables('orchestratorName'), '-master-availabilitySet-', variables('nameSuffix'))]",
     "masterLbName": "[concat(variables('orchestratorName'), '-master-lb-', variables('nameSuffix'))]",
-    "masterVMSize": "Standard_A2",
+    "masterVMSize": "Standard_D2",
     "masterLbID": "[resourceId('Microsoft.Network/loadBalancers',variables('masterLbName'))]",
     "masterLbIPConfigName": "[concat(variables('orchestratorName'), '-master-lbFrontEnd-', variables('nameSuffix'))]",
     "masterLbIPConfigID": "[concat(variables('masterLbID'),'/frontendIPConfigurations/', variables('masterLbIPConfigName'))]",
@@ -341,6 +340,11 @@
     "wadperfcounters2-false": "",
     "wadcfgxstart": "[concat(variables('wadlogs'),variables(concat('wadperfcounters1','-',variables('enableVMDiagnostics'))),variables(concat('wadperfcounters2','-',variables('enableVMDiagnostics'))),'<Metrics resourceId=\"')]",    
     "wadcfgxend": "[concat('\"><MetricAggregation scheduledTransferPeriod=\"PT1H\"/><MetricAggregation scheduledTransferPeriod=\"PT1M\"/></Metrics></DiagnosticMonitorConfiguration></WadCfg>')]",
+    
+    "computeApiVersion": "2016-03-30",
+    "networkApiVersion": "2016-03-30",
+    "storageApiVersion": "2015-06-15",
+    
      "vmSizesMap": {
          "Standard_A0": {
            "storageAccountType":"Standard_LRS"
@@ -489,8 +493,11 @@
     {
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[variables('masterStorageAccountName')]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('storageApiVersion')]",
       "location": "[variables('storageLocation')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('masterPublicIPAddressName'))]"
+      ],
       "properties": {
         "accountType":"[variables('vmSizesMap')[variables('masterVMSize')].storageAccountType]"
       }
@@ -498,14 +505,14 @@
     {
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[variables('diagnosticsStorageAccountName')]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('storageApiVersion')]",
       "location": "[variables('storageLocation')]",
       "properties": {
         "accountType": "[variables('vmSizesMap')[variables('masterVMSize')].storageAccountType]"
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "type": "Microsoft.Network/virtualNetworks",
       "name": "[variables('virtualNetworkName')]",
       "location": "[resourceGroup().location]",
@@ -533,14 +540,14 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('computeApiVersion')]",
       "type": "Microsoft.Compute/availabilitySets",
       "name": "[variables('masterAvailabilitySet')]",
       "location": "[resourceGroup().location]",
       "properties": {}
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "type": "Microsoft.Network/publicIPAddresses",
       "name": "[variables('masterPublicIPAddressName')]",
       "location": "[resourceGroup().location]",
@@ -552,7 +559,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "name": "[variables('masterLbName')]",
       "type": "Microsoft.Network/loadBalancers",
       "location": "[resourceGroup().location]",
@@ -578,7 +585,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "type": "Microsoft.Network/loadBalancers/inboundNatRules",
       "name": "[concat(variables('masterLbName'), '/', 'SSH-', variables('masterVMNamePrefix'), copyIndex())]",
       "location": "[resourceGroup().location]",
@@ -600,7 +607,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "type": "Microsoft.Network/networkSecurityGroups",
       "name": "[variables('masterNSGName')]",
       "location": "[resourceGroup().location]",
@@ -624,7 +631,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "type": "Microsoft.Network/networkInterfaces",
       "name": "[concat(variables('masterVMNamePrefix'), 'nic-', copyIndex())]",
       "location": "[resourceGroup().location]",
@@ -667,7 +674,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('computeApiVersion')]",
       "type": "Microsoft.Compute/virtualMachines",
       "name": "[concat(variables('masterVMNamePrefix'), copyIndex())]",
       "location": "[resourceGroup().location]",
@@ -692,7 +699,7 @@
           "computername": "[concat(variables('masterVMNamePrefix'), copyIndex())]",
           "adminUsername": "[variables('adminUsername')]",
           "adminPassword": "[variables('adminPassword')]",
-          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-swarm-cluster.sh\n    permissions: \"0744\"\n\n')]",
+          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-swarm-cluster.sh\n    permissions: \"0744\"\n\n')]",
           "linuxConfiguration": "[variables('linuxConfiguration')]"
         },
         "storageProfile": {
@@ -705,7 +712,7 @@
           "osDisk": {
             "name": "[concat(variables('masterVMNamePrefix'), copyIndex(),'-osdisk')]",
             "vhd": {
-              "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', variables('masterStorageAccountName')), '2015-06-15').primaryEndpoints.blob, 'vhds/', variables('masterVMNamePrefix'), copyIndex(), '-osdisk.vhd')]"
+              "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', variables('masterStorageAccountName')), variables('storageApiVersion')).primaryEndpoints.blob, 'vhds/', variables('masterVMNamePrefix'), copyIndex(), '-osdisk.vhd')]"
             },
             "caching": "ReadWrite",
             "createOption": "FromImage"
@@ -721,7 +728,7 @@
         "diagnosticsProfile": {
           "bootDiagnostics": {
             "enabled": "[variables('enableVMDiagnostics')]",
-            "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('diagnosticsStorageAccountName')), '2015-06-15').primaryEndpoints.blob]"
+            "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('diagnosticsStorageAccountName')), variables('storageApiVersion')).primaryEndpoints.blob]"
           }
         }
       }
@@ -729,7 +736,7 @@
     {
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(variables('masterVMNamePrefix'), copyIndex(), '/linuxdiagnostic')]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('computeApiVersion')]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "vmLoopNode",
@@ -750,14 +757,14 @@
         },
         "protectedSettings": {
             "storageAccountName": "[variables(concat('diagnosticsStorageAccountName', '-', variables('enableVMDiagnostics')))]",
-            "storageAccountKey": "[listKeys(variables('accountid'),'2015-06-15').key1]"
+            "storageAccountKey": "[listKeys(variables('accountid'), variables('storageApiVersion')).key1]"
         }
       }
     },
     {
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(variables('masterVMNamePrefix'), copyIndex(), '/configuremaster')]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('computeApiVersion')]",
       "location": "[resourceGroup().location]",
       "copy": {
         "name": "vmLoopNode",
@@ -779,18 +786,21 @@
     {
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[concat(variables('storageAccountPrefixes')[mod(copyIndex(),variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(copyIndex(),variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),copyIndex(1))]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('storageApiVersion')]",
       "location": "[variables('storageLocation')]",
       "copy": {
         "name": "vmLoopNode",
         "count": "[variables('agentStorageAccountsCount')]"
       },
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('agentPublicIPAddressName'))]"
+      ],
       "properties": {
         "accountType": "[variables('vmSizesMap')[variables('agentVMSize')].storageAccountType]"
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "type": "Microsoft.Network/publicIPAddresses",
       "name": "[variables('agentPublicIPAddressName')]",
       "location": "[resourceGroup().location]",
@@ -802,7 +812,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "name": "[variables('agentsLbName')]",
       "type": "Microsoft.Network/loadBalancers",
       "location": "[resourceGroup().location]",
@@ -920,7 +930,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('networkApiVersion')]",
       "type": "Microsoft.Network/networkSecurityGroups",
       "name": "[variables('agentNSGName')]",
       "location": "[resourceGroup().location]",
@@ -972,7 +982,7 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "[variables('computeApiVersion')]",
       "type": "Microsoft.Compute/virtualMachineScaleSets",
       "name": "[concat(variables('agentVMNamePrefix'), '-vmss')]",
       "location": "[resourceGroup().location]",
@@ -997,6 +1007,9 @@
         "upgradePolicy": {
           "mode": "Automatic"
         },
+        "recoveryPolicy": {
+          "mode": "OverProvision"
+        },
         "virtualMachineProfile": {
           "storageProfile": {
             "imageReference": {
@@ -1008,11 +1021,11 @@
             "osDisk": {
               "name": "[concat(variables('agentVMNamePrefix'), 'vmssosdisk', 0)]",
               "vhdContainers": [
-               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(0,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(0,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),1), '2015-06-15').primaryEndpoints.blob, 'osdisk')]",
-               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(1,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(1,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),2), '2015-06-15').primaryEndpoints.blob, 'osdisk')]",
-               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(2,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(2,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),3), '2015-06-15').primaryEndpoints.blob, 'osdisk')]",
-               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(3,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(3,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),4), '2015-06-15').primaryEndpoints.blob, 'osdisk')]",
-               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(4,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(4,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),5), '2015-06-15').primaryEndpoints.blob, 'osdisk')]"
+               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(0,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(0,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),1), variables('storageApiVersion') ).primaryEndpoints.blob, 'osdisk')]",
+               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(1,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(1,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),2), variables('storageApiVersion')).primaryEndpoints.blob, 'osdisk')]",
+               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(2,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(2,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),3), variables('storageApiVersion')).primaryEndpoints.blob, 'osdisk')]",
+               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(3,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(3,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),4), variables('storageApiVersion')).primaryEndpoints.blob, 'osdisk')]",
+               "[concat(reference(concat('Microsoft.Storage/storageAccounts/',variables('storageAccountPrefixes')[mod(4,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(4,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),5), variables('storageApiVersion')).primaryEndpoints.blob, 'osdisk')]"
 
               ],
               "caching": "ReadWrite",
@@ -1022,7 +1035,7 @@
           "osProfile": {
             "computerNamePrefix": "[variables('agentVMNamePrefix')]",
             "adminUsername": "[variables('adminUsername')]",
-            "customData": "[base64(concat('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-swarm-cluster.sh\n    permissions: \"0744\"\n\n',variables('agentRunCmdFile'),variables('agentRunCmd')))]",
+            "customData": "[base64(concat('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-swarm-cluster.sh\n    permissions: \"0744\"\n\n',variables('agentRunCmdFile'),variables('agentRunCmd')))]",
             "linuxConfiguration": "[variables('linuxConfiguration')]"
           },
           "networkProfile": {
@@ -1069,7 +1082,7 @@
                     },
                     "protectedSettings": {
                         "storageAccountName": "[variables(concat('diagnosticsStorageAccountName', '-', variables('enableVMDiagnostics')))]",
-                        "storageAccountKey": "[listKeys(variables('accountid'),'2015-06-15').key1]"
+                        "storageAccountKey": "[listKeys(variables('accountid'), variables('storageApiVersion')).key1]"
                     }
                 }       
               }
@@ -1078,7 +1091,7 @@
           "diagnosticsProfile": {
             "bootDiagnostics": {
               "enabled": "[variables('enableVMDiagnostics')]",
-              "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('diagnosticsStorageAccountName')), '2015-06-15').primaryEndpoints.blob]"
+              "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('diagnosticsStorageAccountName')), variables('storageApiVersion')).primaryEndpoints.blob]"
             }
           }
         }
@@ -1100,7 +1113,7 @@
     },
     "diagnosticsStorageAccountUri": {
       "type": "string",
-      "value": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('diagnosticsStorageAccountName')), '2015-06-15').primaryEndpoints.blob]"
+      "value": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('diagnosticsStorageAccountName')), variables('storageApiVersion')).primaryEndpoints.blob]"
     }
   }
 }
