@@ -205,7 +205,6 @@
   "variables": {
     "adminUsername": "[parameters('linuxAdminUsername')]",
     "adminPassword": "[parameters('linuxAdminPassword')]",
-    "jumpboxEndpointDNSNamePrefix": "[tolower(parameters('jumpboxEndpointDNSNamePrefix'))]",
     "masterEndpointDNSNamePrefix": "[tolower(parameters('masterEndpointDNSNamePrefix'))]",
     "agentEndpointDNSNamePrefix": "[tolower(parameters('agentEndpointDNSNamePrefix'))]",
     "agentCount": "[parameters('agentCount')]",
@@ -216,11 +215,6 @@
     "linuxOffer": "[parameters('linuxOffer')]",
     "linuxSku": "[parameters('linuxSku')]",
     "linuxVersion": "[parameters('linuxVersion')]",
-    "windowsJumpboxPublisher": "[parameters('windowsJumpboxPublisher')]",
-    "windowsJumpboxOffer": "[parameters('windowsJumpboxOffer')]",
-    "windowsJumpboxSku": "[parameters('windowsJumpboxSku')]",
-    "windowsAdminUsername": "[parameters('windowsAdminUsername')]",
-    "windowsAdminPassword": "[parameters('windowsAdminPassword')]",
     "vmsPerStorageAccount": "[parameters('vmsPerStorageAccount')]",
     "postInstallScriptURI": "[parameters('postInstallScriptURI')]",
 
@@ -256,7 +250,6 @@
 
     "masterPublicIPAddressName": "[concat(variables('orchestratorName'), '-master-ip-', variables('masterEndpointDNSNamePrefix'), '-', variables('nameSuffix'))]",
     "agentPublicIPAddressName": "[concat(variables('orchestratorName'), '-agent-ip-', variables('agentEndpointDNSNamePrefix'), '-', variables('nameSuffix'))]",
-    "jumpboxPublicIPAddressName": "[concat(variables('orchestratorName'), '-jumpbox-ip-', variables('jumpboxEndpointDNSNamePrefix'), '-', variables('nameSuffix'))]",
 
     "osImagePublisher": "[variables('linuxPublisher')]",
     "osImageOffer": "[variables('linuxOffer')]",
@@ -284,21 +277,6 @@
     "omsStorageAccountKey": "none",
     "clusterInstallParameters": "[concat(variables('masterCount'), ' ',variables('masterVMNamePrefix'), ' ',variables('masterFirstAddr'), ' ',variables('adminUsername'),' ',variables('postInstallScriptURI'))]",
 
-    "jumpboxNSGName": "[concat(variables('orchestratorName'), '-jumpbox-nsg-', variables('nameSuffix'))]",
-    "jumpboxNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('jumpboxNSGName'))]",
-    "jumpboxAddr": 4,
-    "jumpboxVMName": "[concat(variables('orchestratorName'), '-jumpbox-', variables('nameSuffix'))]",
-    "jumpboxVMSize": "Standard_A1",
-
-    "jumpboxLinuxInstallParameters": "[concat(variables('adminUsername'))]",
-    "jumpboxLinuxCustomScript": "[concat('/usr/bin/nohup /bin/bash -c \"/bin/bash /opt/azure/containers/configure-ubuntu.sh ',variables('jumpboxLinuxInstallParameters'),' >> /var/log/azure/jumpbox-bootstrap.log 2>&1 &\" &')]",
-
-    "setBrowserFirstTabDefaultPrefix": "powershell.exe -ExecutionPolicy Unrestricted -command \"New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer' ; New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\BrowserEmulation' ; New-ItemProperty -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\BrowserEmulation' -Name IntranetCompatibilityMode -Value 0 -Type DWord; New-Item -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Main' ; New-ItemProperty -Path HKLM:'\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Main' -Name 'Start Page' -Type String -Value http://\"",
-    "setBrowserFirstTabDefaultSuffix": "0:5050",
-    "jumpboxWindowsCustomScript": "[concat(variables('setBrowserFirstTabDefaultPrefix'),variables('masterVMNamePrefix'),variables('setBrowserFirstTabDefaultSuffix'))]",
-
-    "masterNSGName": "[concat(variables('orchestratorName'), '-master-nsg-', variables('nameSuffix'))]",
-    "masterNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('masterNSGName'))]",
     "masterVMNamePrefix": "[concat(variables('orchestratorName'), '-master-', variables('nameSuffix'), '-')]",
     "masterFirstAddr": 5,
     "masterAvailabilitySet": "[concat(variables('orchestratorName'), '-master-availabilitySet-', variables('nameSuffix'))]",
@@ -310,9 +288,6 @@
     "masterLbBackendPoolName": "[concat(variables('orchestratorName'), '-master-pool-', variables('nameSuffix'))]",
     "masterCustomScript": "[concat('/bin/bash -c \"/bin/bash /opt/azure/containers/configure-swarm-cluster.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/cluster-bootstrap.log 2>&1\"')]",
 
-    "agentNSGName": "agent-nsg",
-    "agentNSGName": "[concat(variables('orchestratorName'), '-agent-nsg-', variables('nameSuffix'))]",
-    "agentNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('agentNSGName'))]",
     "agentFirstAddr": 20,
     "agentVMNamePrefix": "[concat(variables('orchestratorName'), '-agent-', variables('nameSuffix'))]",
     "agentsLbName": "[concat(variables('orchestratorName'), '-agent-lb-', variables('nameSuffix'))]",
@@ -326,7 +301,7 @@
     "agentCustomScript": "[concat('/usr/bin/nohup /bin/bash -c \"/bin/bash /opt/azure/containers/configure-swarm-cluster.sh ',variables('clusterInstallParameters'),' >> /var/log/azure/cluster-bootstrap.log 2>&1 &\" &')]",
     "agentRunCmdFile": "[concat(' -  content: |\n        #!/bin/bash\n        ',variables('agentCustomScript'),'\n    path: /opt/azure/containers/install-cluster.sh\n    permissions: \"0744\"\n')]",
     "agentRunCmd": "[concat('runcmd:\n -  [ /bin/bash, /opt/azure/containers/install-cluster.sh ]\n\n')]",
-    
+
     "enableVMDiagnostics": "[parameters('enableVMDiagnostics')]",
     "diagnosticsStorageAccountName": "[concat(variables('storageAccountBaseName'), 'diag', '0')]",
     "diagnosticsStorageAccountName-true" : "[variables('diagnosticsStorageAccountName')]",
@@ -338,13 +313,13 @@
     "wadperfcounters2-true": "<PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk\\BytesPerSecond\" sampleRate=\"PT15S\" unit=\"BytesPerSecond\"><annotation displayName=\"Disk total bytes\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk\\ReadBytesPerSecond\" sampleRate=\"PT15S\" unit=\"BytesPerSecond\"><annotation displayName=\"Disk read guest OS\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk\\WriteBytesPerSecond\" sampleRate=\"PT15S\" unit=\"BytesPerSecond\"><annotation displayName=\"Disk write guest OS\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk\\TransfersPerSecond\" sampleRate=\"PT15S\" unit=\"CountPerSecond\"><annotation displayName=\"Disk transfers\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk\\ReadsPerSecond\" sampleRate=\"PT15S\" unit=\"CountPerSecond\"><annotation displayName=\"Disk reads\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk\\WritesPerSecond\" sampleRate=\"PT15S\" unit=\"CountPerSecond\"><annotation displayName=\"Disk writes\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk\\AverageReadTime\" sampleRate=\"PT15S\" unit=\"Seconds\"><annotation displayName=\"Disk read time\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk\\AverageWriteTime\" sampleRate=\"PT15S\" unit=\"Seconds\"><annotation displayName=\"Disk write time\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk\\AverageTransferTime\" sampleRate=\"PT15S\" unit=\"Seconds\"><annotation displayName=\"Disk transfer time\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk\\AverageDiskQueueLength\" sampleRate=\"PT15S\" unit=\"Count\"><annotation displayName=\"Disk queue length\" locale=\"en-us\"/></PerformanceCounterConfiguration></PerformanceCounters>",
     "wadperfcounters1-false": "",
     "wadperfcounters2-false": "",
-    "wadcfgxstart": "[concat(variables('wadlogs'),variables(concat('wadperfcounters1','-',variables('enableVMDiagnostics'))),variables(concat('wadperfcounters2','-',variables('enableVMDiagnostics'))),'<Metrics resourceId=\"')]",    
+    "wadcfgxstart": "[concat(variables('wadlogs'),variables(concat('wadperfcounters1','-',variables('enableVMDiagnostics'))),variables(concat('wadperfcounters2','-',variables('enableVMDiagnostics'))),'<Metrics resourceId=\"')]",
     "wadcfgxend": "[concat('\"><MetricAggregation scheduledTransferPeriod=\"PT1H\"/><MetricAggregation scheduledTransferPeriod=\"PT1M\"/></Metrics></DiagnosticMonitorConfiguration></WadCfg>')]",
-    
+
     "computeApiVersion": "2016-03-30",
     "networkApiVersion": "2016-03-30",
     "storageApiVersion": "2015-06-15",
-    
+
      "vmSizesMap": {
          "Standard_A0": {
            "storageAccountType":"Standard_LRS"
@@ -608,30 +583,6 @@
     },
     {
       "apiVersion": "[variables('networkApiVersion')]",
-      "type": "Microsoft.Network/networkSecurityGroups",
-      "name": "[variables('masterNSGName')]",
-      "location": "[resourceGroup().location]",
-      "properties": {
-        "securityRules": [
-          {
-            "name": "ssh",
-            "properties": {
-              "description": "Allow SSH",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "22",
-              "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
-              "access": "Allow",
-              "priority": 200,
-              "direction": "Inbound"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "apiVersion": "[variables('networkApiVersion')]",
       "type": "Microsoft.Network/networkInterfaces",
       "name": "[concat(variables('masterVMNamePrefix'), 'nic-', copyIndex())]",
       "location": "[resourceGroup().location]",
@@ -642,13 +593,9 @@
       "dependsOn": [
         "[variables('masterLbID')]",
         "[variables('vnetID')]",
-        "[concat(variables('masterLbID'),'/inboundNatRules/SSH-',variables('masterVMNamePrefix'),copyIndex())]",
-        "[variables('masterNSGID')]"
+        "[concat(variables('masterLbID'),'/inboundNatRules/SSH-',variables('masterVMNamePrefix'),copyIndex())]"
       ],
       "properties": {
-        "networkSecurityGroup": {
-          "id": "[variables('masterNSGID')]"
-        },
         "ipConfigurations": [
           {
             "name": "ipConfigNode",
@@ -699,7 +646,7 @@
           "computername": "[concat(variables('masterVMNamePrefix'), copyIndex())]",
           "adminUsername": "[variables('adminUsername')]",
           "adminPassword": "[variables('adminPassword')]",
-          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-swarm-cluster.sh\n    permissions: \"0744\"\n\n')]",
+          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-swarm-cluster.sh\n    permissions: \"0744\"\n\n')]",
           "linuxConfiguration": "[variables('linuxConfiguration')]"
         },
         "storageProfile": {
@@ -745,7 +692,7 @@
       "dependsOn": [
         "[concat('Microsoft.Compute/virtualMachines/', concat(variables('masterVMNamePrefix'), copyIndex()))]"
       ],
-      "properties": 
+      "properties":
       {
         "publisher": "Microsoft.OSTCExtensions",
         "type": "LinuxDiagnostic",
@@ -930,58 +877,6 @@
       }
     },
     {
-      "apiVersion": "[variables('networkApiVersion')]",
-      "type": "Microsoft.Network/networkSecurityGroups",
-      "name": "[variables('agentNSGName')]",
-      "location": "[resourceGroup().location]",
-      "properties": {
-        "securityRules": [
-          {
-            "name": "http",
-            "properties": {
-              "description": "Allow HTTP",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "80",
-              "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
-              "access": "Allow",
-              "priority": 210,
-              "direction": "Inbound"
-            }
-          },
-          {
-            "name": "https",
-            "properties": {
-              "description": "Allow HTTPS",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "443",
-              "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
-              "access": "Allow",
-              "priority": 220,
-              "direction": "Inbound"
-            }
-          },
-          {
-            "name": "Tcp8080",
-            "properties": {
-              "description": "Allow port 8080",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "8080",
-              "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
-              "access": "Allow",
-              "priority": 230,
-              "direction": "Inbound"
-            }
-          }
-        ]
-      }
-    },
-    {
       "apiVersion": "[variables('computeApiVersion')]",
       "type": "Microsoft.Compute/virtualMachineScaleSets",
       "name": "[concat(variables('agentVMNamePrefix'), '-vmss')]",
@@ -995,7 +890,6 @@
         "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountPrefixes')[mod(4,variables('storageAccountPrefixesCount'))],variables('storageAccountPrefixes')[div(4,variables('storageAccountPrefixesCount'))],variables('storageAccountBaseName'),5)]",
         "[variables('agentsLbID')]",
         "[variables('vnetID')]",
-        "[variables('agentNSGID')]",
         "[variables('diagnosticsStorageAccountName')]"
       ],
       "sku": {
@@ -1035,7 +929,7 @@
           "osProfile": {
             "computerNamePrefix": "[variables('agentVMNamePrefix')]",
             "adminUsername": "[variables('adminUsername')]",
-            "customData": "[base64(concat('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-swarm-cluster.sh\n    permissions: \"0744\"\n\n',variables('agentRunCmdFile'),variables('agentRunCmd')))]",
+            "customData": "[base64(concat('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-swarm-cluster.sh\n    permissions: \"0744\"\n\n',variables('agentRunCmdFile'),variables('agentRunCmd')))]",
             "linuxConfiguration": "[variables('linuxConfiguration')]"
           },
           "networkProfile": {
@@ -1044,9 +938,6 @@
                 "name": "agentNodeNic",
                 "properties": {
                   "primary": "true",
-                  "networkSecurityGroup": {
-                    "id": "[variables('agentNSGID')]"
-                  },
                   "ipConfigurations": [
                     {
                       "name": "nicipconfig",
@@ -1070,7 +961,7 @@
             "extensions": [
               {
                 "name": "LinuxDiagnostic",
-                "properties":           
+                "properties":
                 {
                     "publisher": "Microsoft.OSTCExtensions",
                     "type": "LinuxDiagnostic",
@@ -1084,7 +975,7 @@
                         "storageAccountName": "[variables(concat('diagnosticsStorageAccountName', '-', variables('enableVMDiagnostics')))]",
                         "storageAccountKey": "[listKeys(variables('accountid'), variables('storageApiVersion')).key1]"
                     }
-                }       
+                }
               }
             ]
           },
