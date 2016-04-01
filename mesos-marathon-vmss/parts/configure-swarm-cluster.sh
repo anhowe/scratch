@@ -133,6 +133,31 @@ if isagent ; then
   echo "this node is an agent"
 fi
 
+consulstr()
+{
+  consulargs=""
+  for i in `seq 0 $((MASTERCOUNT-1))` ;
+  do
+    MASTEROCTET=`expr $MASTERFIRSTADDR + $i`
+    IPADDR="${BASESUBNET}${MASTEROCTET}"
+
+    if [ "$VMNUMBER" -eq "0" ]
+    then
+      consulargs="${consulargs}-bootstrap-expect $MASTERCOUNT "
+    fi
+    if [ "$VMNUMBER" -eq "$i" ]
+    then
+      consulargs="${consulargs}-advertise $IPADDR "
+    else
+      consulargs="${consulargs}-retry-join $IPADDR "
+    fi
+  done
+  echo $consulargs
+}
+
+consulargs=$(consulstr)
+MASTER0IPADDR="${BASESUBNET}${MASTERFIRSTADDR}"
+
 ######################
 # resolve self in DNS
 ######################
@@ -162,7 +187,7 @@ time installDocker
 sudo usermod -aG docker $AZUREUSER
 if isagent ; then
   # Start Docker and listen on :2375 (no auth, but in vnet)
-  echo 'DOCKER_OPTS="-H unix:///var/run/docker.sock -H 0.0.0.0:2375"' | sudo tee -a /etc/default/docker
+  echo 'DOCKER_OPTS="-H unix:///var/run/docker.sock -H 0.0.0.0:2375 --cluster-store=consul://'$MASTER0IPADDR:8500 --cluster-advertise=$HOSTADDR:2375'"' | sudo tee -a /etc/default/docker
 fi
 
 echo "Installing docker compose"
@@ -198,52 +223,25 @@ ensureDocker
 # configure init rules restart all processes
 ##############################################
 
-consulstr()
-{
-  consulargs=""
-  for i in `seq 0 $((MASTERCOUNT-1))` ;
-  do
-    MASTEROCTET=`expr $MASTERFIRSTADDR + $i`
-    IPADDR="${BASESUBNET}${MASTEROCTET}"
-
-    if [ "$VMNUMBER" -eq "0" ]
-    then
-      consulargs="${consulargs}-bootstrap-expect $MASTERCOUNT "
-    fi
-    if [ "$VMNUMBER" -eq "$i" ]
-    then
-      consulargs="${consulargs}-advertise $IPADDR "
-    else
-      consulargs="${consulargs}-retry-join $IPADDR "
-    fi
-  done
-  echo $consulargs
-}
-
-consulargs=$(consulstr)
-MASTEROCTET=`expr $MASTERFIRSTADDR + $VMNUMBER`
-VMIPADDR="${BASESUBNET}${MASTEROCTET}"
-MASTER0IPADDR="${BASESUBNET}${MASTERFIRSTADDR}"
-
 if ismaster ; then
   mkdir -p /data/consul
   echo "consul:
   image: \"progrium/consul\"
   command: -server -node $VMNAME $consulargs
   ports:
+    - \"8500:8500\"
     - \"8300:8300\"
     - \"8301:8301\"
     - \"8301:8301/udp\"
     - \"8302:8302\"
     - \"8302:8302/udp\"
     - \"8400:8400\"
-    - \"8500:8500\"
   volumes:
     - \"/data/consul:/data\"
   restart: \"always\"
 swarm:
   image: \"$SWARM_VERSION\"
-  command: manage --replication --advertise $HOSTADDR:2375 consul://$MASTER0IPADDR:8500/nodes
+  command: manage --replication --advertise $HOSTADDR:2375 --discovery-opt kv.path=docker/nodes consul://$MASTER0IPADDR:8500
   ports:
     - \"2375:2375\"
   links:
@@ -257,19 +255,6 @@ swarm:
   docker-compose up -d
   popd
   echo "completed starting docker swarm on the master"
-fi
-
-if isagent ; then
-  echo "swarm:
-  image: \"$SWARM_VERSION\"
-  restart: \"always\"
-  command: join --advertise=$HOSTADDR:2375 consul://$MASTER0IPADDR:8500/nodes
-" > /opt/azure/containers/docker-compose.yml
-
-  pushd /opt/azure/containers/
-  docker-compose up -d
-  popd
-  echo "completed starting docker swarm on the agent"
 fi
 
 if [ $POSTINSTALLSCRIPTURI != "disabled" ]
