@@ -17,6 +17,7 @@ date
 ps ax
 
 SWARM_VERSION="swarm:1.1.0"
+DOCKER_COMPOSE_VERSION="1.6.2"
 #############
 # Parameters
 #############
@@ -191,7 +192,20 @@ if isagent ; then
 fi
 
 echo "Installing docker compose"
-curl -L https://github.com/docker/compose/releases/download/1.5.1/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
+installDockerCompose()
+{
+  for i in {1..10}; do
+    wget --tries 4 --retry-connrefused --waitretry=15 -qO- https://github.com/docker/compose/releases/download/$DOCKER_COMPOSE_VERSION/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
+    if [ $? -eq 0 ]
+    then
+      # hostname has been found continue
+      echo "docker-compose installed successfully"
+      break
+    fi
+    sleep 10
+  done
+}
+time installDockerCompose
 chmod +x /usr/local/bin/docker-compose
 
 sudo service docker restart
