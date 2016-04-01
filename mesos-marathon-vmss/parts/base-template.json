@@ -779,9 +779,6 @@
         "upgradePolicy": {
           "mode": "Automatic"
         },
-        "recoveryPolicy": {
-          "mode": "OverProvision"
-        },
         "virtualMachineProfile": {
           "storageProfile": {
             "imageReference": {
