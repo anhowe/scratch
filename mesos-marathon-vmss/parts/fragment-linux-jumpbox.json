@@ -82,7 +82,7 @@
           "computername": "[variables('jumpboxVMName')]",
           "adminUsername": "[variables('adminUsername')]",
           "adminPassword": "[variables('adminPassword')]",
-          "customData": "[base64('#jumpboxLinuxCustomDataInstallYaml')]",
+          "customData": "[variables('customDataLinuxJumpboxValues')[variables(concat('excludeCustomData', '-', variables('isUpdateDeployment')))]]",
           "linuxConfiguration": "[variables('linuxConfiguration')]"
         },
         "storageProfile": {

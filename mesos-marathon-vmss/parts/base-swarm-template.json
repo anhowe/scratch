@@ -2,6 +2,13 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    "isUpdateDeployment": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "If true: new ARM deployment (create), if false: ARM deployment update."
+      }
+    },
     "linuxAdminUsername": {
       "type": "string",
       "defaultValue": "azureuser",
@@ -200,9 +207,17 @@
       "metadata": {
         "description": "After installation, this specifies a script to download and install.  To disabled, set value to 'disabled'."
       }
+    },
+    "enableNewStorageAccountNaming": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "If true: uses DNS name prefix + Orchestrator name + Region to create storage account name to reduce name collision probability. If false: uses DNS name prefix + Orchestrator name to create storage account name to maintain template idempotency."
+      }
     }
   },
   "variables": {
+    "isUpdateDeployment": "[parameters('isUpdateDeployment')]",
     "adminUsername": "[parameters('linuxAdminUsername')]",
     "adminPassword": "[parameters('linuxAdminPassword')]",
     "masterEndpointDNSNamePrefix": "[tolower(parameters('masterEndpointDNSNamePrefix'))]",
@@ -271,7 +286,10 @@
       "4","a","g","m","s","y","5","b","h","n","t","z"
     ],
     "storageAccountPrefixesCount": "[length(variables('storageAccountPrefixes'))]",
-    "storageAccountBaseName": "[concat(uniqueString(variables('masterEndpointDNSNamePrefix')), variables('orchestratorName'))]",
+    "enableNewStorageAccountNaming": "[parameters('enableNewStorageAccountNaming')]",
+    "storageAccountBaseNameNewSuffix-true":"[resourceGroup().location]",
+    "storageAccountBaseNameNewSuffix-false":"",
+    "storageAccountBaseName": "[concat(uniqueString(concat(variables('masterEndpointDNSNamePrefix'),variables(concat('storageAccountBaseNameNewSuffix', '-', variables('enableNewStorageAccountNaming'))))), variables('orchestratorName'))]",
     "masterStorageAccountName": "[concat(variables('storageAccountBaseName'), '0')]",
     "omsStorageAccount": "none",
     "omsStorageAccountKey": "none",
@@ -281,7 +299,8 @@
     "masterFirstAddr": 5,
     "masterAvailabilitySet": "[concat(variables('orchestratorName'), '-master-availabilitySet-', variables('nameSuffix'))]",
     "masterLbName": "[concat(variables('orchestratorName'), '-master-lb-', variables('nameSuffix'))]",
-    "masterVMSize": "Standard_D2",
+    "masterSizes": ["Standard_D2", "Standard_A1"],
+    "masterVMSize": "[variables('masterSizes')[variables('isValidation')]]",
     "masterLbID": "[resourceId('Microsoft.Network/loadBalancers',variables('masterLbName'))]",
     "masterLbIPConfigName": "[concat(variables('orchestratorName'), '-master-lbFrontEnd-', variables('nameSuffix'))]",
     "masterLbIPConfigID": "[concat(variables('masterLbID'),'/frontendIPConfigurations/', variables('masterLbIPConfigName'))]",
@@ -319,6 +338,13 @@
     "computeApiVersion": "2016-03-30",
     "networkApiVersion": "2016-03-30",
     "storageApiVersion": "2015-06-15",
+
+    "excludeCustomData-false": 0,
+    "excludeCustomData-true": 1,
+    "customDataValues": [
+      "[base64('#clusterCustomDataInstallYaml')]",
+      null
+    ],
 
      #vmsizemapping
   },
@@ -504,7 +530,7 @@
           "computername": "[concat(variables('masterVMNamePrefix'), copyIndex())]",
           "adminUsername": "[variables('adminUsername')]",
           "adminPassword": "[variables('adminPassword')]",
-          "customData": "[base64('#clusterCustomDataInstallYaml')]",
+          "customData": "[variables('customDataValues')[variables(concat('excludeCustomData', '-', variables('isUpdateDeployment')))]]",
           "linuxConfiguration": "[variables('linuxConfiguration')]"
         },
         "storageProfile": {
@@ -784,7 +810,7 @@
           "osProfile": {
             "computerNamePrefix": "[variables('agentVMNamePrefix')]",
             "adminUsername": "[variables('adminUsername')]",
-            "customData": "[base64(concat('#clusterCustomDataInstallYaml',variables('agentRunCmdFile'),variables('agentRunCmd')))]",
+            "customData": "[variables('customDataValues')[variables(concat('excludeCustomData', '-', variables('isUpdateDeployment')))]]",
             "linuxConfiguration": "[variables('linuxConfiguration')]"
           },
           "networkProfile": {
