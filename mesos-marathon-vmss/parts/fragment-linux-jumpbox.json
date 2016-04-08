@@ -82,7 +82,7 @@
           "computername": "[variables('jumpboxVMName')]",
           "adminUsername": "[variables('adminUsername')]",
           "adminPassword": "[variables('adminPassword')]",
-          "customData": "[variables('customDataLinuxJumpboxValues')[variables(concat('excludeCustomData', '-', variables('isUpdateDeployment')))]]",
+          "customData": "[base64('#jumpboxLinuxCustomDataInstallYaml')]",
           "linuxConfiguration": "[variables('linuxConfiguration')]"
         },
         "storageProfile": {
@@ -121,7 +121,7 @@
       "properties": {
         "publisher": "Microsoft.OSTCExtensions",
         "type": "CustomScriptForLinux",
-        "typeHandlerVersion": "1.3",
+        "typeHandlerVersion": "1.4",
         "settings": {
           "commandToExecute": "[variables('jumpboxLinuxCustomScript')]"
         }

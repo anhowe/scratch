@@ -2,13 +2,6 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "isUpdateDeployment": {
-      "type": "bool",
-      "defaultValue": false,
-      "metadata": {
-        "description": "If true: new ARM deployment (create), if false: ARM deployment update."
-      }
-    },
     "linuxAdminUsername": {
       "type": "string",
       "defaultValue": "azureuser",
@@ -217,7 +210,6 @@
     }
   },
   "variables": {
-    "isUpdateDeployment": "[parameters('isUpdateDeployment')]",
     "adminUsername": "[parameters('linuxAdminUsername')]",
     "adminPassword": "[parameters('linuxAdminPassword')]",
     "masterEndpointDNSNamePrefix": "[tolower(parameters('masterEndpointDNSNamePrefix'))]",
@@ -339,13 +331,6 @@
     "networkApiVersion": "2016-03-30",
     "storageApiVersion": "2015-06-15",
 
-    "excludeCustomData-false": 0,
-    "excludeCustomData-true": 1,
-    "customDataValues": [
-      "[base64('#clusterCustomDataInstallYaml')]",
-      null
-    ],
-
      #vmsizemapping
   },
   "resources": [
@@ -366,6 +351,9 @@
       "name": "[variables('diagnosticsStorageAccountName')]",
       "apiVersion": "[variables('storageApiVersion')]",
       "location": "[variables('storageLocation')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('masterPublicIPAddressName'))]"
+      ],
       "properties": {
         "accountType": "[variables('vmSizesMap')[variables('masterVMSize')].storageAccountType]"
       }
@@ -530,7 +518,7 @@
           "computername": "[concat(variables('masterVMNamePrefix'), copyIndex())]",
           "adminUsername": "[variables('adminUsername')]",
           "adminPassword": "[variables('adminPassword')]",
-          "customData": "[variables('customDataValues')[variables(concat('excludeCustomData', '-', variables('isUpdateDeployment')))]]",
+          "customData": "[base64('#clusterCustomDataInstallYaml')]",
           "linuxConfiguration": "[variables('linuxConfiguration')]"
         },
         "storageProfile": {
@@ -607,7 +595,7 @@
       "properties": {
         "publisher": "Microsoft.OSTCExtensions",
         "type": "CustomScriptForLinux",
-        "typeHandlerVersion": "1.3",
+        "typeHandlerVersion": "1.4",
         "settings": {
           "fileUris": [],
           "commandToExecute": "[variables('masterCustomScript')]"
@@ -810,7 +798,7 @@
           "osProfile": {
             "computerNamePrefix": "[variables('agentVMNamePrefix')]",
             "adminUsername": "[variables('adminUsername')]",
-            "customData": "[variables('customDataValues')[variables(concat('excludeCustomData', '-', variables('isUpdateDeployment')))]]",
+            "customData": "[base64(concat('#clusterCustomDataInstallYaml',variables('agentRunCmdFile'),variables('agentRunCmd')))]",
             "linuxConfiguration": "[variables('linuxConfiguration')]"
           },
           "networkProfile": {
