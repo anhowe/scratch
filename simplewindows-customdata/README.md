@@ -2,7 +2,7 @@
 
 This demonstrates booting a simple windows VM using customData to deliver a powershell script for execution on the VM.  This also deploys the custom script extension to execute the script.  The script is gzipped and base64 encoded for most efficient delivery.
 
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fsimplewindows%2Fazuredeploy.json" target="_blank">
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fsimplewindows-customdata%2Fazuredeploy.json" target="_blank">
     <img src="http://azuredeploy.net/deploybutton.png"/>
 </a>
 
