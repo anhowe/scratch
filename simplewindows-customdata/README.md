@@ -7,7 +7,9 @@ This demonstrates booting a simple windows VM using customData to deliver a powe
 </a>
 
 Here are some notes:
+
 1. Use the gen-ps-launcher-template-vars.py and launcher.ps1 to generate the template variables.  Once generate, put these in the variables section of the template.  The launcher will automatically unzip and launch the powershell in %SYSTEMDRIVE%\AzureData\CustomData.bin.
+
 2. Use the gen-oneline-customdata.py to gzip the powershell script payload.  This gzips the payload for most efficient delivery.  Take the output from this and paste into the customData section of the Windows VM.
 
-The azuredeploy.json demonstrates the launcher and a sample powershell script.  Once you deploy the VM and extension, you can confirm 
+The azuredeploy.json demonstrates the launcher and a sample powershell script.  Once you deploy the VM and extension, you can confirm
