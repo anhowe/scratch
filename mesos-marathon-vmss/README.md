@@ -8,6 +8,7 @@ Portal Launch Button|Cluster Type|Walkthrough Instructions
 <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon-vmss%2Fmesos-cluster-with-windows-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Mesos with windows jumpbox|[Mesos Cluster Walkthrough](#mesos-cluster-walkthrough)
 <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon-vmss%2Fmesos-cluster-with-linux-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Mesos with linux jumpbox|[Mesos Cluster Walkthrough](#mesos-cluster-walkthrough)
 <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon-vmss%2Fswarm-cluster-with-no-jumpbox.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Swarm Cluster|[Swarm Cluster Walkthrough](#swarm-cluster-walkthrough)
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Fmesos-marathon-vmss%2Fswarm-cluster-with-windows.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Swarm Windows Cluster|[Swarm Windows Cluster Walkthrough](#swarm-windows-cluster-walkthrough)
 
 # Mesos Cluster Walkthrough
 
@@ -174,6 +175,27 @@ web:
  ![Image of the web page](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/swarmbrowser.png)
  7. You can now scale the web application by typing `docker-compose scale web=3`, and this will scale to the rest of your agents.  The Azure load balancer will automatically pick up the new containers.
  ![Image of docker scaling](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/dockercomposescale.png)
+
+ # Swarm Windows Cluster Walkthrough
+
+ Once your Swarm Windows cluster has been created you will have a resource group containing 2 parts:
+
+ 1. a set of 1,3,5 masters in a master specific availability set.  Each master's SSH can be accessed via the public dns address at ports 2200..2204
+
+ 2. a set of agents behind in an agent specific availability set.  Each Windows Agent can be access via RDP through ports 3389 for agent0, 3390 for agent1, 3391 for agent2 and so on.
+
+  The following image is an example of a cluster with 3 masters, and 3 agents:
+
+ ![Image of Swarm Windows cluster on azure](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/swarmwindows.png)
+
+ All VMs are on the same private vnet and masters on subnet 172.16.0.0/24, and agents on subnet 10.0.0.0/8, and fully accessible to each other.
+
+ ## Explore Swarm with Simple hello world
+ 1. After successfully deploying the template write down the two output master and agent FQDNs.
+ 2. SSH to port 2200 of the master FQDN
+ 3. Type `docker -H :2375 info` to see the status of the agent nodes.
+ ![Image of docker info](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/dockerinfowindows.png)
+ 4. Type `docker -H :2375 run --rm -i windowsservercore powershell -command "Write-Output 'hello world'"` to see the hello-world test app run on one of the agents
 
 # Sample Workloads
 
