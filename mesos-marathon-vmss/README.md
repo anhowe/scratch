@@ -209,11 +209,17 @@ web:
   restart: "always"
 ```
  4. type `docker-compose up -d` to create the simple web server.  this will take about a minute to start the image
+
  5. once completed, type `docker ps` to see the running image.
+
  ![Image of docker ps](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon-vmss/images/dockerpswindows.png)
+
  6. in your web browser hit the agent FQDN endpoint you recorded in step #1 and you should see the following page, with a counter that increases on each refresh.
+
  ![Image of the web page](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon-vmss/images/swarmbrowserwindows.png)
+
  7. You can now scale the web application by typing `docker-compose scale web=3`, and this will scale to the rest of your agents.  The Azure load balancer will automatically pick up the new containers.
+
  ![Image of docker scaling](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon-vmss/images/dockercomposescalewindows.png)
 
 # Sample Workloads
