@@ -269,7 +269,7 @@
     "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
     "masterSubnetName": "[concat(variables('orchestratorName'), '-masterSubnet')]",
     "masterSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('masterSubnetName'))]",
-    "masterAddressPrefix": "172.16.0.0/24",
+    "masterAddressPrefix": "192.168.255.0/24",
     "subnetName": "[concat(variables('orchestratorName'), '-subnet')]",
     "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
     "addressPrefix": "10.0.0.0/8",
@@ -287,7 +287,7 @@
     "masterStorageAccountName": "[concat(variables('storageAccountBaseName'), '0')]",
     "omsStorageAccount": "none",
     "omsStorageAccountKey": "none",
-    "clusterInstallParameters": "[concat(variables('masterCount'), ' ',variables('masterVMNamePrefix'), ' ',variables('masterFirstAddr'), ' ',variables('adminUsername'),' ',variables('postInstallScriptURI'))]",
+    "clusterInstallParameters": "[concat(variables('masterCount'), ' ',variables('masterVMNamePrefix'), ' ',variables('masterFirstAddr'), ' ',variables('adminUsername'),' ',variables('postInstallScriptURI'),' ',split(variables('masterAddressPrefix'),'0/24')[0])]",
 
     "masterVMNamePrefix": "[concat(variables('orchestratorName'), '-master-', variables('nameSuffix'), '-')]",
     "masterFirstAddr": 5,
@@ -673,7 +673,7 @@
           "computername": "[concat(variables('masterVMNamePrefix'), copyIndex())]",
           "adminUsername": "[variables('adminUsername')]",
           "adminPassword": "[variables('adminPassword')]",
-          "customData": "[base64('#cloud-config\n\nwrite_files:\n -  encoding: gzip\n    content: !!binary |\n        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\n    path: /opt/azure/containers/configure-swarm-cluster.sh\n    permissions: \"0744\"\n\n')]",
+          "customData": "[base64('#clusterCustomDataInstallYaml')]",
           "linuxConfiguration": "[variables('linuxConfiguration')]"
         },
         "storageProfile": {
@@ -1005,7 +1005,8 @@
                 "properties": {
                   "publisher": "Microsoft.Compute",
                   "type": "CustomScriptExtension",
-                  "typeHandlerVersion": "1.4",
+                  "typeHandlerVersion": "1.8",
+                  "autoUpgradeMinorVersion": true,
                   "settings": {
                     "commandToExecute": "[variables('windowsCustomScript')]"
                   }

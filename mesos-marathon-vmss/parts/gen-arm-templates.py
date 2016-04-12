@@ -190,4 +190,4 @@ if __name__ == "__main__":
         shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, os.path.join(args.output_directory, ARM_OUTPUT_TEMPLATE_LINUX_JUMPBOX).replace(".json", ".parameters.json") )
         shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, os.path.join(args.output_directory, ARM_OUTPUT_TEMPLATE_WINDOWS_JUMPBOX).replace(".json", ".parameters.json") )
         shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, os.path.join(args.output_directory, ARM_OUTPUT_SWARM_TEMPLATE).replace(".json", ".parameters.json") )
-        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, os.path.join(args.output_directory, ARM_OUTPUT_SWARM_TEMPLATE).replace(".json", ".parameters.json") )
+        shutil.copyfile(ARM_INPUT_PARAMETER_TEMPLATE, os.path.join(args.output_directory, ARM_OUTPUT_SWARM_WINDOWS_TEMPLATE).replace(".json", ".parameters.json") )

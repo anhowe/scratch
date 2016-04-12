@@ -153,9 +153,9 @@ This walk through is based the wonderful digital ocean tutorial: https://www.dig
 ## Explore Swarm with Simple hello world
  1. After successfully deploying the template write down the two output master and agent FQDNs.
  2. SSH to port 2200 of the master FQDN
- 3. Type `docker -H 172.16.0.5:2375 info` to see the status of the agent nodes.
+ 3. Type `docker -H :2375 info` to see the status of the agent nodes.
  ![Image of docker info](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon-vmss/images/dockerinfo.png)
- 4. Type `docker -H 172.16.0.5:2375 run hello-world` to see the hello-world test app run on one of the agents
+ 4. Type `docker -H :2375 run -it hello-world` to see the hello-world test app run on one of the agents
 
 ## Explore Swarm with a web-based Compose Script, then scale the script to all agents
  1. After successfully deploying the template write down the two output master and agent FQDNs.
@@ -167,7 +167,7 @@ web:
     - "80:80"
   restart: "always"
 ```
- 3.  type `export DOCKER_HOST=172.16.0.5:2375` so that docker-compose automatically hits the swarm endpoints
+ 3.  type `export DOCKER_HOST=:2375` so that docker-compose automatically hits the swarm endpoints
  4. type `docker-compose up -d` to create the simple web server.  this will take about a minute to pull the image
  5. once completed, type `docker ps` to see the running image.
  ![Image of docker ps](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon-vmss/images/dockerps.png)
@@ -176,7 +176,7 @@ web:
  7. You can now scale the web application by typing `docker-compose scale web=3`, and this will scale to the rest of your agents.  The Azure load balancer will automatically pick up the new containers.
  ![Image of docker scaling](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon-vmss/images/dockercomposescale.png)
 
- # Swarm Windows Cluster Walkthrough
+# Swarm Windows Cluster Walkthrough
 
 Once your Swarm Windows cluster has been created you will have a resource group containing 2 parts:
 
@@ -195,6 +195,26 @@ All VMs are on the same private vnet and masters on subnet 172.16.0.0/24, and ag
 3. Type `docker -H :2375 info` to see the status of the agent nodes.
 ![Image of docker info](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon-vmss/images/dockerinfowindows.png)
 4. Type `docker -H :2375 run --rm -i windowsservercore powershell -command "Write-Output 'hello world'"` to see the hello-world test app run on one of the agents
+
+## Explore Swarm with a web-based Compose Script, then scale the script to all agents
+ 1. After successfully deploying the template write down the two output master and agent FQDNs.
+ 2. type `export DOCKER_HOST=:2375` so that docker-compose automatically hits the swarm endpoints
+ 3. create the following docker-compose.yml file with the following content:
+```
+web:
+  image: "windowsservercore"
+  command: [powershell.exe, -command, "<#code used from https://gist.github.com/wagnerandrade/5424431#> ; $$ip = (Get-NetIPAddress | where {$$_.IPAddress -Like '*.*.*.*'})[0].IPAddress ; $$url = 'http://'+$$ip+':80/' ; $$listener = New-Object System.Net.HttpListener ; $$listener.Prefixes.Add($$url) ; $$listener.Start() ; $$callerCounts = @{} ; Write-Host('Listening at {0}...' -f $$url) ; while ($$listener.IsListening) { ;$$context = $$listener.GetContext() ;$$requestUrl = $$context.Request.Url ;$$clientIP = $$context.Request.RemoteEndPoint.Address ;$$response = $$context.Response ;Write-Host '' ;Write-Host('> {0}' -f $$requestUrl) ;  ;$$count = 1 ;$$k=$$callerCounts.Get_Item($$clientIP) ;if ($$k -ne $$null) { $$count += $$k } ;$$callerCounts.Set_Item($$clientIP, $$count) ;$$header='<html><body><H1>Windows Container Web Server</H1>' ;$$callerCountsString='' ;$$callerCounts.Keys | % { $$callerCountsString+='<p>IP {0} callerCount {1} ' -f $$_,$$callerCounts.Item($$_) } ;$$footer='</body></html>' ;$$content='{0}{1}{2}' -f $$header,$$callerCountsString,$$footer ;Write-Output $$content ;$$buffer = [System.Text.Encoding]::UTF8.GetBytes($$content) ;$$response.ContentLength64 = $$buffer.Length ;$$response.OutputStream.Write($$buffer, 0, $$buffer.Length) ;$$response.Close() ;$$responseStatus = $$response.StatusCode ;Write-Host('< {0}' -f $$responseStatus)  } ; "]
+  ports:
+    - "80:80"
+  restart: "always"
+```
+ 4. type `docker-compose up -d` to create the simple web server.  this will take about a minute to start the image
+ 5. once completed, type `docker ps` to see the running image.
+ ![Image of docker ps](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon-vmss/images/dockerpswindows.png)
+ 6. in your web browser hit the agent FQDN endpoint you recorded in step #1 and you should see the following page, with a counter that increases on each refresh.
+ ![Image of the web page](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon-vmss/images/swarmbrowserwindows.png)
+ 7. You can now scale the web application by typing `docker-compose scale web=3`, and this will scale to the rest of your agents.  The Azure load balancer will automatically pick up the new containers.
+ ![Image of docker scaling](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon-vmss/images/dockercomposescalewindows.png)
 
 # Sample Workloads
 

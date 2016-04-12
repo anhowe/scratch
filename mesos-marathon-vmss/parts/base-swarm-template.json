@@ -285,7 +285,7 @@
     "masterStorageAccountName": "[concat(variables('storageAccountBaseName'), '0')]",
     "omsStorageAccount": "none",
     "omsStorageAccountKey": "none",
-    "clusterInstallParameters": "[concat(variables('masterCount'), ' ',variables('masterVMNamePrefix'), ' ',variables('masterFirstAddr'), ' ',variables('adminUsername'),' ',variables('postInstallScriptURI'))]",
+    "clusterInstallParameters": "[concat(variables('masterCount'), ' ',variables('masterVMNamePrefix'), ' ',variables('masterFirstAddr'), ' ',variables('adminUsername'),' ',variables('postInstallScriptURI'),' ',split(variables('masterAddressPrefix'),'0/24')[0])]",
 
     "masterVMNamePrefix": "[concat(variables('orchestratorName'), '-master-', variables('nameSuffix'), '-')]",
     "masterFirstAddr": 5,
