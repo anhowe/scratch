@@ -380,7 +380,6 @@ respawn
 
 exec /usr/local/mesos-dns/mesos-dns -config /usr/local/mesos-dns/mesos-dns.json" > mesos-dns.conf
   sudo mv mesos-dns.conf /etc/init
-  sudo service mesos-dns start
 fi
 
 #########################
@@ -408,23 +407,27 @@ do
     echo nameserver $IPADDR | sudo tee -a /etc/resolvconf/resolv.conf.d/head
 done
 cat /etc/resolvconf/resolv.conf.d/head
-sudo service resolvconf restart
 
 ##############################################
 # configure init rules restart all processes
 ##############################################
-echo "(re)starting mesos and framework processes"
+echo "stop mesos and framework processes, they will restart after reboot"
 if ismaster ; then
-  sudo service zookeeper restart
-  sudo service mesos-master start
-  echo "sleep 10 seconds to allow master to start"
-  sleep 10
-  if [ "$MARATHONENABLED" == "true" ] ; then
-    sudo service marathon start
-  fi
-  if [ "$CHRONOSENABLED" == "true" ] ; then
-    sudo service chronos start
-  fi
+  echo manual | sudo tee /etc/init/mesos-slave.override
+  sudo service mesos-slave stop
+
+  # stop all running services
+  sudo service marathon stop
+  sudo service chronos stop
+  sudo service mesos-dns stop
+  sudo service mesos-master stop
+  sudo service zookeeper stop
+
+  # the following will clear out any corrupt zookeeper state, and zookeeper will
+  # reconstruct this on the reboot at the end of provisioning
+  sudo mkdir /var/lib/zookeeperbackup
+  sudo mv /var/lib/zookeeper/* /var/lib/zookeeperbackup
+  sudo cp /var/lib/zookeeperbackup/myid /var/lib/zookeeper/
 else
   echo manual | sudo tee /etc/init/zookeeper.override
   sudo service zookeeper stop
@@ -432,19 +435,6 @@ else
   sudo service mesos-master stop
 fi
 
-if isagent ; then
-  echo "starting mesos-slave"
-  sudo service mesos-slave start
-  echo "completed starting mesos-slave with code $?"
-else
-  echo manual | sudo tee /etc/init/mesos-slave.override
-  sudo service mesos-slave stop
-fi
-
-echo "processes after restarting mesos"
-ps ax
-
-# Run swarm manager container only on the first master node
 if ismaster && [ "$SWARMENABLED" == "true" ] && [ $VMNUMBER -eq "0" ]; then
   echo "starting docker swarm version $SWARM_VERSION"
   echo "sleep 10 seconds to give master time to come up"
@@ -484,7 +474,6 @@ installMesosAdminRouter()
 
   sudo mv /etc/nginx/nginx.conf /etc/nginx/nginx.conf.orig
   sudo cp /opt/azure/containers/nginx.conf /etc/nginx/nginx.conf
-  sudo service nginx restart
 }
 
 # only install the mesos dcos cli on the master
@@ -534,6 +523,6 @@ echo "restart system to install any remaining software"
 if isagent ; then
   shutdown -r now
 else
-  # wait 1 minute to restart master
-  /bin/bash -c "shutdown -r 1 &"
+  # wait 30s for guest agent to communicate back success and then reboot
+  /usr/bin/nohup /bin/bash -c "sleep 30s; shutdown -r now" &
 fi
