@@ -168,7 +168,7 @@ if __name__ == "__main__":
     MESOS_CLUSTER_INSTALL_SCRIPT = "configure-mesos-cluster.sh"
     SWARM_CLUSTER_INSTALL_SCRIPT = "configure-swarm-cluster.sh"
     LINUX_JUMPBOX_INSTALL_SCRIPT = "configure-ubuntu.sh"
-    SWARM_WINDOWS_AGENT_INSTALL_SCRIPT = "WindowsDockerDeploy.ps1"
+    SWARM_WINDOWS_AGENT_INSTALL_SCRIPT = "Install-ContainerHost-And-Join-Swarm.ps1"
 
     # admin router configuration file
     ADMIN_ROUTER_CONF = "nginx.conf"
