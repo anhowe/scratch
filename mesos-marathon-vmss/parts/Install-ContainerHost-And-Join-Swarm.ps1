@@ -1,5 +1,5 @@
 ############################################################
-# Script adapted from 
+# Script adapted from
 # https://raw.githubusercontent.com/Microsoft/Virtualization-Documentation/master/windows-server-container-tools/Install-ContainerHost/Install-ContainerHost.ps1
 
 <#
@@ -18,14 +18,14 @@
         Installs the prerequisites for creating Windows containers
         Opens TCP ports (80,443,2375,8080) in Windows Firewall.
         Updates Windows Docker Binary from DockerPath
-        Rewrites runDockerDaemon.cmd startup script to join a Docker Swarm
+        Writes configuration in daemon.json to join a Docker Swarm
         Start Docker
 
     .DESCRIPTION
         Installs the prerequisites for creating Windows containers
         Opens TCP ports (80,443,2375,8080) in Windows Firewall.
         Updates Windows Docker Binary from DockerPath
-        Rewrites runDockerDaemon.cmd startup script to join a Docker Swarm
+        Writes configuration in daemon.json to join a Docker Swarm
         Start Docker
 
     .PARAMETER DockerPath
@@ -37,10 +37,10 @@
     .PARAMETER ExternalNetAdapter
         Specify a specific network adapter to bind to a DHCP network
 
-    .PARAMETER Force 
+    .PARAMETER Force
         If a restart is required, forces an immediate restart.
-        
-    .PARAMETER HyperV 
+
+    .PARAMETER HyperV
         If passed, prepare the machine for Hyper-V containers
 
     .PARAMETER NoRestart
@@ -54,7 +54,7 @@
 
     .PARAMETER WimPath
         Path to .wim file that contains the base package image
-        
+
     .PARAMETER SwarmMasterIP
         IP Address of Docker Swarm Master
 
@@ -104,7 +104,7 @@ param(
     [string]
     [ValidateNotNullOrEmpty()]
     $WimPath,
-    
+
     [string]
     [ValidateNotNullOrEmpty()]
     $SwarmMasterIP = "172.16.0.5"
@@ -145,7 +145,7 @@ Restart-And-Run()
     # We wrap the powershell call to a call to CMD like custom script extension so that
     # appending the output to the same file isn't written as Unicode. Existing file is not Unicode.
     Write-Log "Creating scheduled task action cmd /c powershell.exe -NoExit ($scriptPath $argList >> $logPath 2>&1)..."
-    $action = New-ScheduledTaskAction -Execute "cmd" -Argument " /c powershell.exe -ExecutionPolicy Unrestricted $scriptPath $argList >> $logPath 2>&1" 
+    $action = New-ScheduledTaskAction -Execute "cmd" -Argument " /c powershell.exe -ExecutionPolicy Unrestricted $scriptPath $argList >> $logPath 2>&1"
 
     Write-Log "Creating scheduled task trigger..."
     $trigger = New-ScheduledTaskTrigger -AtStartup
@@ -208,7 +208,7 @@ Install-Feature
                 $global:RebootRequired = $true;
             }
         }
-        
+
         Write-Log "Add-WindowsFeature $FeatureName took $time"
     }
     else
@@ -277,7 +277,7 @@ Install-ContainerHost
         {
             Write-Log "Enabling Hyper-V containers by default for Client SKU"
             $HyperV = $true
-        }    
+        }
     }
     #
     # Validate required Windows features
@@ -327,7 +327,7 @@ Install-ContainerHost
         schtasks /DELETE /TN $global:BootstrapTask /F
         #Unregister-ScheduledTask -TaskName $global:BootstrapTask -Confirm $true
     }
-    
+
 
     #
     # Configure networking
@@ -337,7 +337,7 @@ Install-ContainerHost
         Write-Log "Configuring ICMP firewall rules for containers..."
         netsh advfirewall firewall add rule name="ICMP for containers" dir=in protocol=icmpv4 action=allow | Out-Null
         netsh advfirewall firewall add rule name="ICMP for containers" dir=out protocol=icmpv4 action=allow | Out-Null
-        
+
         if ($TransparentNetwork)
         {
             Write-Log "Waiting for Hyper-V Management..."
@@ -362,7 +362,7 @@ Install-ContainerHost
             else
             {
                 Write-Log "Networking is already configured.  Confirming configuration..."
-                
+
                 $transparentNetwork = $networks |? { $_.Mode -eq "Transparent" }
 
                 if ($transparentNetwork -eq $null)
@@ -412,14 +412,14 @@ Install-ContainerHost
         $time = Measure-Command {
             Install-Docker -DockerPath $DockerPath -DockerDPath $DockerDPath
         }
-        
+
         Write-Log "Install-Docker -DockerPath $DockerPath -DockerDPath $DockerDPath took $time"
     }
 
     $newBaseImages = @()
 
     if (-not $SkipImageImport)
-    {        
+    {
         if ($WimPath -eq "")
         {
             $imageName = "WindowsServerCore"
@@ -466,7 +466,7 @@ Install-ContainerHost
 
                         $InstallParams.Add("RequiredVersion", "10.0.$version.$qfe")
                         $versionString = "-RequiredVersion 10.0.$version.$qfe"
-                    }                    
+                    }
                 }
 
                 $time = Measure-Command {
@@ -475,12 +475,12 @@ Install-ContainerHost
                     # TODO: expect the follow to have default ErrorAction of stop
                     #
                     Install-ContainerImage @InstallParams
-            
+
                     Write-Log "Container base image install complete."
                 }
-        
+
                 Write-Log "Install-ContainerImage ($imageName $versionString) took $time"
-                
+
                 $newBaseImages += $imageName
             }
         }
@@ -511,7 +511,7 @@ Install-ContainerHost
             }
 
             $imageName = (get-windowsimage -imagepath $WimPath -LogPath ($env:temp+"dism_$(random)_GetImageInfo.log") -Index 1).imagename
-                        
+
             if ($PSDirect -and (Test-Nano))
             {
                 #
@@ -596,16 +596,16 @@ Copy-File
     param(
         [string]
         $SourcePath,
-        
+
         [string]
         $DestinationPath
     )
-    
+
     if ($SourcePath -eq $DestinationPath)
     {
         return
     }
-          
+
     if (Test-Path $SourcePath)
     {
         Copy-Item -Path $SourcePath -Destination $DestinationPath
@@ -617,7 +617,7 @@ Copy-File
             $handler = New-Object System.Net.Http.HttpClientHandler
             $client = New-Object System.Net.Http.HttpClient($handler)
             $client.Timeout = New-Object System.TimeSpan(0, 30, 0)
-            $cancelTokenSource = [System.Threading.CancellationTokenSource]::new() 
+            $cancelTokenSource = [System.Threading.CancellationTokenSource]::new()
             $responseMsg = $client.GetAsync([System.Uri]::new($SourcePath), $cancelTokenSource.Token)
             $responseMsg.Wait()
 
@@ -633,9 +633,9 @@ Copy-File
                     if ($copyStreamOp.Exception -ne $null)
                     {
                         throw $copyStreamOp.Exception
-                    }      
+                    }
                 }
-            }  
+            }
         }
         elseif ($PSVersionTable.PSVersion.Major -ge 5)
         {
@@ -650,7 +650,7 @@ Copy-File
         {
             $webClient = New-Object System.Net.WebClient
             $webClient.DownloadFile($SourcePath, $DestinationPath)
-        } 
+        }
     }
     else
     {
@@ -659,11 +659,11 @@ Copy-File
 }
 
 
-function 
+function
 Expand-ArchiveNano
 {
     [CmdletBinding()]
-    param 
+    param
     (
         [string] $Path,
         [string] $DestinationPath
@@ -673,26 +673,26 @@ Expand-ArchiveNano
 }
 
 
-function 
+function
 Expand-ArchivePrivate
 {
     [CmdletBinding()]
-    param 
+    param
     (
         [Parameter(Mandatory=$true)]
-        [string] 
+        [string]
         $Path,
 
-        [Parameter(Mandatory=$true)]        
-        [string] 
+        [Parameter(Mandatory=$true)]
+        [string]
         $DestinationPath
     )
-        
+
     $shell = New-Object -com Shell.Application
     $zipFile = $shell.NameSpace($Path)
-    
+
     $shell.NameSpace($DestinationPath).CopyHere($zipFile.items())
-    
+
 }
 
 
@@ -708,7 +708,7 @@ Test-InstalledContainerImage
     )
 
     $path = Join-Path (Join-Path $env:ProgramData "Microsoft\Windows\Images") "*$BaseImageName*"
-    
+
     return Test-Path $path
 }
 
@@ -727,18 +727,18 @@ Get-Nsmm
         [ValidateNotNullOrEmpty()]
         $WorkingDir = "$env:temp"
     )
-    
-    Write-Log "This script uses a third party tool: NSSM. For more information, see https://nssm.cc/usage"       
+
+    Write-Log "This script uses a third party tool: NSSM. For more information, see https://nssm.cc/usage"
     Write-Log "Downloading NSSM..."
 
-    $nssmUri = "https://nssm.cc/release/nssm-2.24.zip"            
+    $nssmUri = "https://nssm.cc/release/nssm-2.24.zip"
     $nssmZip = "$($env:temp)\$(Split-Path $nssmUri -Leaf)"
-            
+
     Write-Verbose "Creating working directory..."
     $tempDirectory = New-Item -ItemType Directory -Force -Path "$($env:temp)\nssm"
-    
+
     Copy-File -SourcePath $nssmUri -DestinationPath $nssmZip
-            
+
     Write-Log "Extracting NSSM from archive..."
     if (Test-Nano)
     {
@@ -762,16 +762,16 @@ Get-Nsmm
 }
 
 
-function 
+function
 Test-Admin()
 {
     # Get the ID and security principal of the current user account
     $myWindowsID=[System.Security.Principal.WindowsIdentity]::GetCurrent()
     $myWindowsPrincipal=new-object System.Security.Principal.WindowsPrincipal($myWindowsID)
-  
+
     # Get the security principal for the Administrator role
     $adminRole=[System.Security.Principal.WindowsBuiltInRole]::Administrator
-  
+
     # Check to see if we are currently running "as Administrator"
     if ($myWindowsPrincipal.IsInRole($adminRole))
     {
@@ -784,16 +784,16 @@ Test-Admin()
         # We are not running "as Administrator"
         # Exit from the current, unelevated, process
         #
-        throw "You must run this script as administrator"   
+        throw "You must run this script as administrator"
     }
 }
 
 
-function 
+function
 Test-ContainerImageProvider()
 {
     if (-not (Get-Command Install-ContainerImage -ea SilentlyContinue))
-    {   
+    {
         Wait-Network
 
         Write-Log "Installing ContainerImage provider..."
@@ -807,26 +807,26 @@ Test-ContainerImageProvider()
 }
 
 
-function 
+function
 Test-Client()
 {
     return (-not ((Get-Command Get-WindowsFeature -ErrorAction SilentlyContinue) -or (Test-Nano)))
 }
 
 
-function 
+function
 Test-Nano()
 {
     $EditionId = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'EditionID').EditionId
 
-    return (($EditionId -eq "ServerStandardNano") -or 
-            ($EditionId -eq "ServerDataCenterNano") -or 
-            ($EditionId -eq "NanoServer") -or 
+    return (($EditionId -eq "ServerStandardNano") -or
+            ($EditionId -eq "ServerDataCenterNano") -or
+            ($EditionId -eq "NanoServer") -or
             ($EditionId -eq "ServerTuva"))
 }
 
 
-function 
+function
 Wait-Network()
 {
     $connectedAdapter = Get-NetAdapter |? ConnectorPresent
@@ -835,7 +835,7 @@ Wait-Network()
     {
         throw "No connected network"
     }
-       
+
     $startTime = Get-Date
     $timeElapsed = $(Get-Date) - $startTime
 
@@ -879,7 +879,7 @@ Find-DockerImages
 }
 
 
-function 
+function
 Install-Docker()
 {
     [CmdletBinding()]
@@ -903,7 +903,7 @@ Install-Docker()
         Write-Log "Installing Docker daemon..."
         Copy-File -SourcePath $DockerDPath -DestinationPath $env:windir\System32\dockerd.exe
     }
-    catch 
+    catch
     {
         Write-Warning "DockerD not yet present."
     }
@@ -992,11 +992,11 @@ if exist %certs%\server-cert.pem (if exist %ProgramData%\docker\tag.txt (goto :s
 
 if not exist %systemroot%\system32\dockerd.exe (goto :legacy)
 
-dockerd -H npipe:// 
+dockerd -H npipe://
 goto :eof
 
 :legacy
-docker daemon -H npipe:// 
+docker daemon -H npipe://
 goto :eof
 
 :secure
@@ -1012,7 +1012,7 @@ docker daemon -H npipe:// -H 0.0.0.0:2376 --tlsverify --tlscacert=%certs%\ca.pem
 }
 
 
-function 
+function
 Start-Docker()
 {
     Write-Log "Starting $global:DockerServiceName..."
@@ -1027,7 +1027,7 @@ Start-Docker()
 }
 
 
-function 
+function
 Stop-Docker()
 {
     Write-Log "Stopping $global:DockerServiceName..."
@@ -1047,7 +1047,7 @@ Stop-Docker()
 }
 
 
-function 
+function
 Test-Docker()
 {
     $service = $null
@@ -1065,7 +1065,7 @@ Test-Docker()
 }
 
 
-function 
+function
 Wait-Docker()
 {
     Write-Log "Waiting for Docker daemon..."
@@ -1085,14 +1085,14 @@ Wait-Docker()
 
             $dockerReady = $true
         }
-        catch 
+        catch
         {
             $timeElapsed = $(Get-Date) - $startTime
 
             if ($($timeElapsed).TotalMinutes -ge 1)
             {
                 throw "Docker Daemon did not start successfully within 1 minute."
-            } 
+            }
 
             # Swallow error and try again
             Start-Sleep -sec 1
@@ -1102,7 +1102,7 @@ Wait-Docker()
 }
 
 
-function 
+function
 Write-DockerImageTag()
 {
     [CmdletBinding()]
@@ -1123,7 +1123,7 @@ Write-DockerImageTag()
         if ($dockerOutput.Count -lt 1)
         {
             #
-            # Docker restart required if the image was installed after Docker was 
+            # Docker restart required if the image was installed after Docker was
             # last started
             #
             Stop-Docker
@@ -1149,14 +1149,14 @@ Write-DockerImageTag()
             $imageId = ($dockerOutput -split "\s+")[2]
 
             Write-Log "Tagging new base image ($imageId)..."
-            
+
             docker tag $imageId "$($BaseImageName.tolower()):latest"
             Write-Log "Base image is now tagged:"
 
             $dockerOutput = Find-DockerImages $BaseImageName
         }
     }
-    
+
     Write-Log $dockerOutput
 }
 
@@ -1211,6 +1211,38 @@ goto :eof
     $OutFile | Out-File -encoding ASCII -filepath "$targetDir\runDockerDaemon.cmd"
 }
 
+# Update Docker Config to have cluster-store=consul:// address configured for Swarm cluster.
+function Write-DockerDaemonJson()
+{
+    $dataDir = $env:ProgramData
+
+    # create the target directory
+    $targetDir = $dataDir + '\docker\config'
+    if(!(Test-Path -Path $targetDir )){
+        New-Item -ItemType directory -Path $targetDir
+    }
+
+    Write-Log "Delete key file, so that this node is unique to swarm"
+    $keyFileName = "$targetDir\key.json"
+    Write-Log "Removing $($keyFileName)"
+    if (Test-Path $keyFileName) {
+      Remove-Item $keyFileName
+    }
+
+    $ipAddress = Get-IPAddress
+
+    Write-Log "Advertise $($ipAddress) to consul://$($SwarmMasterIP):8500"
+    $OutFile = @"
+{
+    "hosts": ["tcp://0.0.0.0:2375", "npipe://"],
+    "cluster-store": "consul://$($SwarmMasterIP):8500",
+    "cluster-advertise": "$($ipAddress):2375"
+}
+"@
+
+    $OutFile | Out-File -encoding ASCII -filepath "$targetDir\daemon.json"
+}
+
 try
 {
     Write-Log "Install Windows Container feature and Docker"
@@ -1222,15 +1254,15 @@ try
     Write-Log "Opening firewall ports"
     Open-FirewallPorts
 
-    Write-Log "Setup Docker Startup Script With Swarm Cluster Info"
-    Write-DockerStartupScriptWithSwarmClusterInfo
+    Write-Log "Write Docker Configuration"
+    Write-DockerDaemonJson
 
     Write-Log "Start Docker"
     Start-Docker
 
     Write-Log "Setup Complete"
 }
-catch 
+catch
 {
     Write-Error $_
 }
