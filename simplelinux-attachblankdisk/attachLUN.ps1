@@ -1,17 +1,35 @@
-$SubscriptionName="Anthony's Developer Azure Account"
-$SubscriptionId="b52fce95-de5f-4b37-afca-db203a5d0b6a"
-$StageStorageAccountName="j3blrojewuwyo"
-$ContainerName="datadisk"
-$RGname="anhowe0622a"
-$vmName = "linuxvm"
-$attach = $false
-$lun = 3
+[CmdletBinding(DefaultParameterSetName="Standard")]
+param(
+    [string]
+    [ValidateNotNullOrEmpty()]
+    $SubscriptionId,
+
+    [string]
+    [ValidateNotNullOrEmpty()]
+    $StorageAccountName,
+
+    [string]
+    [ValidateNotNullOrEmpty()]
+    $RGname,
+
+    [int]
+    $Lun,
+
+    [string]
+    [ValidateNotNullOrEmpty()]
+    $ContainerName="datadisk",
+
+    [string]
+    [ValidateNotNullOrEmpty()]
+    $vmName = "linuxvm"
+)
+
 $diskName = "datadisk{0}" -f $lun
-$targetVhd = "https://{0}.blob.core.windows.net/datadisk/dataDisk{1}.vhd" -f $StageStorageAccountName, $lun
+$targetVhd = "https://{0}.blob.core.windows.net/{1}/dataDisk{2}.vhd" -f $StorageAccountName, $ContainerName, $lun
 
 Set-AzureRmContext -SubscriptionId $SubscriptionId
-$storageKey = (Get-AzureRmStorageAccountKey -ResourceGroupName $RGName -StorageAccountName $StageStorageAccountName).Key1
-$destContext=New-AzureStorageContext -StorageAccountName $StageStorageAccountName -StorageAccountKey $storageKey
+$storageKey = (Get-AzureRmStorageAccountKey -ResourceGroupName $RGName -StorageAccountName $StorageAccountName).Key1
+$destContext=New-AzureStorageContext -StorageAccountName $StorageAccountName -StorageAccountKey $storageKey
 
 # starting attach / detach in an endless while loop
 Write-Output(Get-Date)
@@ -27,7 +45,8 @@ while($true)
   $result=Update-AzureRmVM -ResourceGroupName $rgName -VM $vm
   if ($result -ne $null)
   {
-    Write-Output("UpdateStatus (add): {0}, {1}" -f $result.StatusCode,$result.Status)
+    Write-Output(Get-Date)
+    Write-Output("UpdateStatus (add): {0}, {1}, {2}, {3}, {4}" -f $result.StatusCode,$result.Status, $result.RequestId,$result.Error,$result.ErrorText)
   }
 
   Write-Output("({0}) dettaching disk at LUN {1}" -f $counter, $lun)
@@ -37,12 +56,14 @@ while($true)
   $result=Update-AzureRmVM -ResourceGroupName $rgName -VM $vm
   if ($result -ne $null)
   {
-    Write-Output("UpdateStatus (remove): {0}, {1}" -f $result.StatusCode,$result.Status)
+    Write-Output(Get-Date)
+    Write-Output("UpdateStatus (remove): {0}, {1}, {2}, {3}, {4}" -f $result.StatusCode,$result.Status, $result.RequestId,$result.Error,$result.ErrorText)
   }
   if($result -ne $null -and ($result.StatusCode -ne "OK" -or $result.Status -ne "Succeeded"))
   {
     break
   }
 }
+Get-AzureRmVM -ResourceGroupName $rgName -Name $vmName
 Write-Output("failed after {0} attempts" -f $counter)
 Write-Output(Get-Date)

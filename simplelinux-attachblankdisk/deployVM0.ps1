@@ -1,7 +1,7 @@
 $VerbosePreference="Continue"
 $SubscriptionId="b52fce95-de5f-4b37-afca-db203a5d0b6a"
 Set-AzureRmContext -SubscriptionId $SubscriptionId
-$deployName="anhowe0622a"
+$deployName="anhowe0622b"
 $RGName=$deployName
 $locName="West US"
 $templateFile= "azuredeploy.json"
