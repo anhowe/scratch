@@ -46,3 +46,17 @@ Here are some repros to try to see the impact of the LUN0 issue:
  2. on the linux machine, type `sudo lsscsi`, and observe 7 disks!
  3. to see all disks `attachLUN.ps1 -SubscriptionId SUBSCRIPTIONID -StorageAccountName STORAGEACCOUNT -RGName RESOURCGROUPNAME -Lun 0`
  4. on the linux machine, type `sudo lsscsi`, and observe 10 disks!
+
+9. start fresh
+  1. `detachAllDisks.ps1 -SubscriptionId SUBSCRIPTIONID -StorageAccountName STORAGEACCOUNT -RGName RESOURCGROUPNAME`
+  2. on the linux machine, type `sudo lsscsi`, and observe only the 3 original devices sr0, sda, and sdb
+
+10. attach disks from lun0 to lun9, remove disk at lun0, add disk at lun10, then add disk at lun0
+ 1. `attachLUN0-9.ps1 -SubscriptionId SUBSCRIPTIONID -StorageAccountName STORAGEACCOUNT -RGName RESOURCGROUPNAME`
+ 2. on the linux machine, type `sudo lsscsi`, and observe 10 disks.
+ 3. `detachLUN.ps1 -SubscriptionId SUBSCRIPTIONID -StorageAccountName STORAGEACCOUNT -RGName RESOURCGROUPNAME -Lun 0`
+ 4. on the linux machine, type `sudo lsscsi`, and observe 9 disks.
+ 5. attach disk 10 `attachLUN.ps1 -SubscriptionId SUBSCRIPTIONID -StorageAccountName STORAGEACCOUNT -RGName RESOURCGROUPNAME -Lun 10`
+ 6. on the linux machine, type `sudo lsscsi`, and observe only 9 disks.  The tenth disk is missing.
+ 7. attach disk 0 `attachLUN.ps1 -SubscriptionId SUBSCRIPTIONID -StorageAccountName STORAGEACCOUNT -RGName RESOURCGROUPNAME -Lun 0`
+ 8. on the linux machine, type `sudo lsscsi`, and observe 11 disks.  Everything is correct now that the disk at LUN0 has returned.
