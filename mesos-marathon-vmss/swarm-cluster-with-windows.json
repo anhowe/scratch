@@ -159,7 +159,7 @@
     },
     "windowsAgentVersion": {
       "type": "string",
-      "defaultValue": "2016.0.20160607",
+      "defaultValue": "2016.0.20160624",
       "metadata": {
         "description": "This is the windows version used by the windows agents"
       }
