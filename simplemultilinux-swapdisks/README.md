@@ -1,4 +1,4 @@
-# Boot a simple windows VM
+# Multi Node Linux Cluster
 
 This demonstrates booting multiple linux machines and shows how to setup an experiment to cause the OS drive to land on SDB1.
 
@@ -13,11 +13,12 @@ This demonstrates booting multiple linux machines and shows how to setup an expe
 2. SSH to the first machine on port 2200 (second machine is on port 2201, 3rd on port 2202, and so on)
 
 3. You need to place your private key in /home/azureuser/ssh
- 1. `cd ssh`
- 2. `vi id_rsa` to edit your file and paste in the contents of your private key
- 3. `chmod 600 ~/ssh/id_rsa`
+ 1. `mkdir ssh`
+ 2. `cd ssh`
+ 3. `vi id_rsa` to edit your file and paste in the contents of your private key
+ 4. `chmod 600 ~/ssh/id_rsa`
 
-4. paste in the contents of `findr.sh` and `scandrives.sh` into `/home/azureuser`
+4. paste in the contents of `scandrives.sh` and `findr.sh` into `/home/azureuser`
 
 5. `chmod +x /home/azureuser/scandrives.sh`
 
