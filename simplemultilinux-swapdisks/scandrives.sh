@@ -13,6 +13,7 @@ Manage the cluster.
 Options:
 
 Cluster Management
+  --get-fstab          cat output of /etc/fstab
   --get-mounts         get device of /mnt
   --reboot-nodes       reboot all nodes (except this one)
 
@@ -26,7 +27,7 @@ if [ $# -eq 0 ]; then
   exit 1
 fi
 
-ARGS=$(getopt -s bash -o h --longoptions help,get-mounts,reboot-nodes --name $PROGNAME -- "$@")
+ARGS=$(getopt -s bash -o h --longoptions help,get-fstab,get-mounts,reboot-nodes --name $PROGNAME -- "$@")
 
 if [ $? -ne 0 ] ; then
   usage
@@ -35,6 +36,7 @@ fi
 
 eval set -- "$ARGS"
 
+GETFSTAB=false
 GETMOUNTS=false
 REBOOTNODES=false
 
@@ -43,6 +45,11 @@ while true; do
     -h|--help)
       usage
       exit 0
+      ;;
+
+    --get-fstab)
+      shift
+      GETFSTAB=true
       ;;
 
     --get-mounts)
@@ -97,6 +104,21 @@ getnodes() {
     echo $nodesString
   fi
 }
+
+get-fstab() {
+  local nodesString="$(getnodes)"
+  local -a nodes=()
+  eval "declare -a nodes=${nodesString}"
+
+  for node in "${nodes[@]}"; do
+    hostString="$hostString -H $AZUREUSER@$node"
+  done
+  pssh -i $hostString "ls -l /etc/fstab && sudo cat /etc/fstab"
+}
+if [ "$GETFSTAB" = true ] ; then
+  get-fstab
+  exit 0
+fi
 
 get-mounts() {
   local nodesString="$(getnodes)"
