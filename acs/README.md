@@ -5,7 +5,7 @@ These Microsoft Azure templates create various cluster combinations with DCOS, o
 Portal Launch Button|Cluster Type|Walkthrough Instructions
 --- | --- | ---
 <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Facs%2Facsdocs.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|DCOS|[DCOS Walkthrough](https://github.com/Azure/azure-quickstart-templates/blob/master/101-acs-dcos/docs/DCOSWalkthrough.md)
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Facs%2Facswarm.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Swarm Cluster|[Swarm Cluster Walkthrough](#swarm-cluster-walkthrough)
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Facs%2Facsswarm.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Swarm Cluster|[Swarm Cluster Walkthrough](#swarm-cluster-walkthrough)
 <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanhowe%2Fscratch%2Fmaster%2Facs%2Facswindows.json" target="_blank"><img src="http://azuredeploy.net/deploybutton.png"/></a>|Swarm Windows Cluster|[Swarm Windows Cluster Walkthrough](#swarm-windows-cluster-walkthrough)
 
 # Swarm Cluster Walkthrough
