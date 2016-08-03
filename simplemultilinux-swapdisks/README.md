@@ -50,7 +50,7 @@ This demonstrates booting multiple linux machines and shows how to setup an expe
 
 8. after 30 seconds `./scandrives.sh --get-fstab` and notice how all /etc/fstab files have been re-written and /dev/sdb1 refers to /mount
 
-# Repro to swap disks
+# Repro to get NTFS mounted ephemeral disk
 
 1. deploy the templateFile using your CLI or clicking deploy to portal above.  Choose at least 20 machines with 16.04.0-LTS.
 
