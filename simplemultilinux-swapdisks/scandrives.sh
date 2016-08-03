@@ -14,7 +14,7 @@ Options:
 
 Cluster Management
   --get-fstab          cat output of /etc/fstab
-  --get-mounts         get device of /mnt
+  --get-mounts         get device of / and /mnt
   --reboot-nodes       reboot all nodes (except this one)
 
 Other
@@ -128,7 +128,7 @@ get-mounts() {
   for node in "${nodes[@]}"; do
     hostString="$hostString -H $AZUREUSER@$node"
   done
-  pssh -i $hostString "mount | grep ' on / '"
+  pssh -i $hostString "mount | grep -e ' on /mnt ' -e ' on / '"
 }
 if [ "$GETMOUNTS" = true ] ; then
   get-mounts
