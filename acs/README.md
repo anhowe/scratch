@@ -66,7 +66,7 @@ All VMs are on the same private vnet and masters on subnet 172.16.0.0/24, and ag
 2. SSH to port 2200 of the master FQDN
 3. Type `docker -H :2375 info` to see the status of the agent nodes.
 ![Image of docker info](https://raw.githubusercontent.com/anhowe/scratch/master/acs/images/dockerinfowindows.png)
-4. Type `docker -H :2375 run --rm -i windowsservercore powershell -command "Write-Output 'hello world'"` to see the hello-world test app run on one of the agents
+4. Type `docker -H :2375 run --rm -i microsoft/windowsservercore powershell -command "Write-Output 'hello world'"` to see the hello-world test app run on one of the agents
 
 ## Explore Swarm with a web-based Compose Script, then scale the script to all agents
  1. After successfully deploying the template write down the two output master and agent FQDNs.
@@ -74,7 +74,7 @@ All VMs are on the same private vnet and masters on subnet 172.16.0.0/24, and ag
  3. create the following docker-compose.yml file with the following content:
 ```
 web:
-  image: "windowsservercore"
+  image: "microsoft/windowsservercore"
   command: [powershell.exe, -command, "<#code used from https://gist.github.com/wagnerandrade/5424431#> ; $$ip = (Get-NetIPAddress | where {$$_.IPAddress -Like '*.*.*.*'})[0].IPAddress ; $$url = 'http://'+$$ip+':80/' ; $$listener = New-Object System.Net.HttpListener ; $$listener.Prefixes.Add($$url) ; $$listener.Start() ; $$callerCounts = @{} ; Write-Host('Listening at {0}...' -f $$url) ; while ($$listener.IsListening) { ;$$context = $$listener.GetContext() ;$$requestUrl = $$context.Request.Url ;$$clientIP = $$context.Request.RemoteEndPoint.Address ;$$response = $$context.Response ;Write-Host '' ;Write-Host('> {0}' -f $$requestUrl) ;  ;$$count = 1 ;$$k=$$callerCounts.Get_Item($$clientIP) ;if ($$k -ne $$null) { $$count += $$k } ;$$callerCounts.Set_Item($$clientIP, $$count) ;$$header='<html><body><H1>Windows Container Web Server</H1>' ;$$callerCountsString='' ;$$callerCounts.Keys | % { $$callerCountsString+='<p>IP {0} callerCount {1} ' -f $$_,$$callerCounts.Item($$_) } ;$$footer='</body></html>' ;$$content='{0}{1}{2}' -f $$header,$$callerCountsString,$$footer ;Write-Output $$content ;$$buffer = [System.Text.Encoding]::UTF8.GetBytes($$content) ;$$response.ContentLength64 = $$buffer.Length ;$$response.OutputStream.Write($$buffer, 0, $$buffer.Length) ;$$response.Close() ;$$responseStatus = $$response.StatusCode ;Write-Host('< {0}' -f $$responseStatus)  } ; "]
   ports:
     - "80:80"
