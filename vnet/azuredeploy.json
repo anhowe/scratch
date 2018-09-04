@@ -4,7 +4,7 @@
   "parameters": {
     "uniqueName": {
       "type": "string",
-      "default": "vnet1",
+      "defaultValue": "vnet1",
       "metadata": {
         "description": "The unique name used for resource names"
       }
