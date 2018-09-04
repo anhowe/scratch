@@ -1,6 +1,6 @@
 # An NFS Filer with an Azure Storage Container backend
 
-The attached template creates an NFS server, and exports the folder of a mounted Azure Storage Container using Azure Blob Fuse https://github.com/Azure/azure-storage-fuse.
+The attached template creates an NFS server, and exports the folder of a mounted Azure Storage Container using Azure Blob Fuse https://github.com/Azure/azure-storage-fuse.  The purpose of this project is that this can be integrated into an NFS HA cluster like Avere vFXT's NFS global namespace without modification to the client machines.  This is useful for import and export to/from the block blob format.
 
 Here are the steps to deploy:
 
