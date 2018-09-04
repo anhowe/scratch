@@ -1,0 +1,79 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "uniqueName": {
+      "type": "string",
+      "default": "vnet1",
+      "metadata": {
+        "description": "The unique name used for resource names"
+      }
+    },
+    "addressPrefix": {
+      "type": "string",
+      "defaultValue": "10.0.0.0/16",
+      "metadata": {
+        "description": "The address prefix for the VNET."
+      }
+    },
+    "subnetPrefix": {
+      "type": "string",
+      "defaultValue": "10.0.0.0/24",
+      "metadata": {
+        "description": "The subnet prefix for the VNET."
+      }
+    }
+  },
+  "variables": {
+    "uniqueName": "[parameters('uniqueName')]",
+    "addressPrefix": "[parameters('addressPrefix')]",
+    "subnetPrefix": "[parameters('subnetPrefix')]",
+    "virtualNetworkName": "[concat('vnet-',variables('uniqueName'))]",
+    "subnetName": "[concat('subnet-',variables('uniqueName'))]"
+  },
+  "resources": [
+    {
+      "apiVersion": "2017-10-01",
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[variables('virtualNetworkName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('addressPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('subnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('subnetPrefix')]"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "RESOURCE_GROUP": {
+      "type": "string",
+      "value": "[resourceGroup().name]"
+    },
+    "LOCATION": {
+      "type": "string",
+      "value": "[resourceGroup().location]"
+    },
+    "NETWORK": {
+      "type": "string",
+      "value": "[variables('virtualNetworkName')]"
+    },
+    "SUBNET": {
+      "type": "string",
+      "value": "[variables('subnetName')]"
+    },
+    "SUBNET_ID": {
+      "type": "string",
+      "value": "[concat(resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName')),'/subnets/',variables('subnetName'))]"
+    }
+  }
+}

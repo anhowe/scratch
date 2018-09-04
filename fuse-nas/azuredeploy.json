@@ -1,0 +1,200 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "uniqueName": {
+      "type": "string",
+      "metadata": {
+        "description": "The unique name used for the NFS VM."
+      }
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_D16s_v3",
+      "metadata": {
+        "description": "Size of the controller VM."
+      }
+    },
+    "adminUsername": {
+      "type": "string",
+      "defaultValue": "azureuser",
+      "metadata": {
+        "description": "Admin username on the controller VM."
+      }
+    },
+    "sshKeyData": {
+      "type": "string",
+      "metadata": {
+        "description": "The public SSH key used for access to the VM."
+      }
+    },
+    "subnetId": {
+      "type": "string",
+      "metadata": {
+        "description": "The fully qualified reference to the subnet of the VNET.  Example /subscriptions/SUBSCRIPTION/resourceGroups/RESOURCEGROUP/providers/Microsoft.Network/virtualNetworks/NETWORK_NAME/subnets/SUBNET_NAME."
+      }
+    },
+    "storageAccountResourceGroupName": {
+      "type": "string",
+      "metadata": {
+        "description": "The storage account name to back the azure blob fuse mount.  The storage account must be capable of storage block blobs."
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "The storage account name to back the azure blob fuse mount.  The storage account must be capable of storage block blobs."
+      }
+    },
+    "storageAccountContainer": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the storage account container to be mounted by azure blob fuse."
+      }
+    },
+    "blobFuseBasePath": {
+      "type": "string",
+      "defaultValue": "/nfs/blobfuse",
+      "metadata": {
+        "description": "The base path for mounting the storage account container."
+      }
+    }
+  },
+  "variables": {
+    "vmName": "[parameters('uniqueName')]",
+    "vmSize": "[parameters('vmSize')]",
+    "adminUsername": "[parameters('adminUsername')]",
+    "sshKeyData": "[parameters('sshKeyData')]",    
+    "subnetId": "[parameters('subnetId')]",
+    "storageAccountResourceGroupName": "[parameters('storageAccountResourceGroupName')]",
+    "storageAccountName": "[parameters('storageAccountName')]",
+    "storageAccountContainer": "[parameters('storageAccountContainer')]",
+    "blobFuseBasePath": "[parameters('blobFuseBasePath')]",
+    "storageAccountid": "[resourceId(variables('storageAccountResourceGroupName'),'Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
+    "publicIPAddressName": "[concat(parameters('uniqueName'), '-publicip')]",
+    "sshKeyPath": "[concat('/home/',variables('adminUsername'),'/.ssh/authorized_keys')]",
+    "environmentVariables": "[concat(' FUSE_BASE=', variables('blobFuseBasePath'), ' STORAGE_ACCOUNT=', variables('storageAccountName'), ' STORAGE_ACCOUNT_CONTAINER=', variables('storageAccountContainer'))]",
+    "imageReference": {
+      "publisher": "Canonical",
+      "offer": "UbuntuServer",
+      "sku": "18.04-LTS",
+      "version": "latest"
+    }
+  },
+  "resources": [
+    {
+      "apiVersion": "2017-10-01",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[variables('publicIPAddressName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "publicIPAllocationMethod": "Static"
+      }
+    },
+    {
+      "apiVersion": "2017-10-01",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(variables('vmName'), '-nic')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'))]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))]"
+              },
+              "subnet": {
+                "id": "[variables('subnetId')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2017-12-01",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat(variables('vmName'))]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', variables('vmName'), '-nic')]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('vmSize')]"
+        },
+        "osProfile": {
+          "computername": "[concat(variables('vmName'))]",
+          "adminUsername": "[variables('adminUsername')]",
+          "linuxConfiguration": {
+            "disablePasswordAuthentication": "true",
+            "ssh": {
+              "publicKeys": [
+                {
+                  "path": "[variables('sshKeyPath')]",
+                  "keyData": "[variables('sshKeyData')]"
+                }
+              ]
+            }
+          }
+        },
+        "storageProfile": {
+          "imageReference": "[variables('imageReference')]"
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('vmName'), '-nic'))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(variables('vmName'), '/configureagent')]",
+      "apiVersion": "2017-12-01",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', variables('vmName'))]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "fileUris": [
+            "https://raw.githubusercontent.com/anhowe/scratch/master/fuse-nas/installnfs.sh"
+          ]
+        },
+        "protectedSettings": {
+          "commandToExecute": "[concat(variables('environmentVariables'), ' STORAGE_ACCOUNT_KEY=', listKeys(variables('storageAccountid'),'2017-10-01').Keys[0].value, ' /bin/bash installnfs.sh')]"
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "RESOURCE_GROUP": {
+      "type": "string",
+      "value": "[resourceGroup().name]"
+    },
+    "LOCATION": {
+      "type": "string",
+      "value": "[resourceGroup().location]"
+    },
+    "sshString": {
+      "type": "string",
+      "value": "[concat('ssh ', variables('adminUsername'), '@', reference(concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'))).ipAddress)]"
+    },
+    "privateIp": {
+      "type": "string",
+      "value": "[reference(variables('nicName')).ipConfigurations[0].properties.privateIPAddress]"
+    }
+  }
+}
