@@ -122,6 +122,7 @@ function main() {
     cd /opt/fuse
     git clone https://github.com/anhowe/azure-storage-fuse.git
     cd azure-storage-fuse
+    git checkout fix213
     ./build.sh
     cp build/blobfuse /usr/bin/blobfuse
     #######################################################
