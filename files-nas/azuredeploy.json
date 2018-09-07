@@ -37,13 +37,13 @@
     "storageAccountResourceGroupName": {
       "type": "string",
       "metadata": {
-        "description": "The storage account name to back the azure blob fuse mount.  The storage account must be capable of storage block blobs."
+        "description": "The storage account name to back the azure files mount.  The storage account must be capable of Azure Files."
       }
     },
     "storageAccountName": {
       "type": "string",
       "metadata": {
-        "description": "The storage account name to back the azure blob fuse mount.  The storage account must be capable of storage block blobs."
+        "description": "The storage account name to back the azure files mount.  The storage account must be capable of Azure Files."
       }
     },
     "storageFileShare": {
@@ -170,7 +170,7 @@
         "autoUpgradeMinorVersion": true,
         "settings": {
           "fileUris": [
-            "https://raw.githubusercontent.com/anhowe/scratch/master/fuse-nas/installnfs.sh"
+            "https://raw.githubusercontent.com/anhowe/scratch/master/files-nas/installnfs.sh"
           ]
         },
         "protectedSettings": {
