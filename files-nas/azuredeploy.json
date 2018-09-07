@@ -73,7 +73,7 @@
     "storageAccountid": "[resourceId(variables('storageAccountResourceGroupName'),'Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
     "publicIPAddressName": "[concat(parameters('uniqueName'), '-publicip')]",
     "sshKeyPath": "[concat('/home/',variables('adminUsername'),'/.ssh/authorized_keys')]",
-    "environmentVariables": "[concat(' NFS_BASE=', variables('nfsBasePath'), ' STORAGE_ACCOUNT=', variables('storageAccountName'), ' STORAGE_ACCOUNT_CONTAINER=', variables('storageFileShare'))]",
+    "environmentVariables": "[concat(' NFS_BASE=', variables('nfsBasePath'), ' STORAGE_ACCOUNT=', variables('storageAccountName'), ' STORAGE_ACCOUNT_SHARE=', variables('storageFileShare'))]",
     "imageReference": {
       "publisher": "Canonical",
       "offer": "UbuntuServer",
