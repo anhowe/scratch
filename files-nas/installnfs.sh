@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # variables that must be set beforehand
-# NFS_BASE=/blobfuse
+# NFS_BASE=/nfs/files
 # STORAGE_ACCOUNT=<storage_account_name>
 # STORAGE_ACCOUNT_KEY=<storage_account_key>
 # STORAGE_ACCOUNT_SHARE=<STORAGE_ACCOUNT_SHARE>
 #
 
-NFS_BASE_SHARE=${NFS_BASE}share
+NFS_BASE_SHARE="`dirname ${NFS_BASE}`/_`basename ${NFS_BASE}`"
 CONVMVFS_MOUNT=${NFS_BASE}
 
 function apt_get_update() {
