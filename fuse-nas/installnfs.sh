@@ -7,8 +7,6 @@
 # STORAGE_ACCOUNT_CONTAINER=<storage_account_container>
 #
 
-MOUNT_OPTIONS="noatime,nodiratime,nodev,noexec,nosuid,nofail"
-
 function apt_get_update() {
     retries=10
     apt_update_output=/tmp/apt-get-update.out
