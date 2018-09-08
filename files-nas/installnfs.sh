@@ -7,7 +7,7 @@
 # STORAGE_ACCOUNT_SHARE=<STORAGE_ACCOUNT_SHARE>
 #
 
-MOUNT_OPTIONS="noatime,nodiratime,nodev,noexec,nosuid,nofail"
+CONVMVFS_MOUNT=${NFS_BASE}conv
 
 function apt_get_update() {
     retries=10
@@ -48,7 +48,7 @@ function config_linux() {
 	#sudo sed -ie "s/127.0.0.1 localhost/127.0.0.1 localhost ${hostname}/" /etc/hosts
 	export DEBIAN_FRONTEND=noninteractive  
 	apt_get_update
-	apt_get_install 20 10 180 nfs-kernel-server nfs-common cifs-utils 
+	apt_get_install 20 10 180 nfs-kernel-server nfs-common cifs-utils fuse-convmvfs
 }
 
 function configure_files_mount() {
@@ -75,14 +75,39 @@ function configure_files_mount() {
     mount ${NFS_BASE}
 }
 
+function configure_convmvfs_mount() {
+    # configuration described in the answer here https://unix.stackexchange.com/questions/315637/is-it-possible-to-create-a-nfs-share-from-a-cifs-mounted-directory
+    
+    # write the files
+    MOUNT_FILE=/root/mount.sh
+    touch $MOUNT_FILE
+    chmod 700 $MOUNT_FILE
+    /bin/cat <<EOM >$MOUNT_FILE
+#!/bin/bash
+/usr/bin/convmvfs \$1 -o srcdir=${NFS_BASE},icharset=iso-8859-1,ocharset=iso-8859-1,user_allow_other
+EOM
+
+    # add the line to fstab
+    mkdir -p ${CONVMVFS_MOUNT}
+    grep "${CONVMVFS_MOUNT}" /etc/fstab >/dev/null 2>&1
+    if [ ${?} -eq 0 ];
+    then
+        echo "Not adding ${CONVMVFS_MOUNT} to fstab again (it's already there!)"
+    else
+        LINE="${MOUNT_FILE}\t${CONVMVFS_MOUNT}\tfuse\t_netdev\t0 0"
+        echo -e "${LINE}" >> /etc/fstab
+    fi
+    mount ${CONVMVFS_MOUNT}
+}
+
 # export all the disks under ${DATA_BASE} for NFS
 function configure_nfs() {
     # configure NFS export for the disk
-    grep "^${NFS_BASE}" /etc/exports > /dev/null 2>&1
+    grep "^${CONVMVFS_MOUNT}" /etc/exports > /dev/null 2>&1
     if [ $? = "0" ]; then
-        echo "${NFS_BASE} is already exported. Returning..."
+        echo "${CONVMVFS_MOUNT} is already exported. Returning..."
     else
-        echo -e "\n${NFS_BASE}   *(rw,fsid=1,sync,no_root_squash)" >> /etc/exports
+        echo -e "\n${CONVMVFS_MOUNT}   *(rw,fsid=1,sync,no_root_squash)" >> /etc/exports
     fi
     
     systemctl enable nfs-kernel-server.service
@@ -95,6 +120,9 @@ function main() {
 
     echo "config files mount"
     configure_files_mount
+
+    echo "config convmvfs mount"
+    configure_convmvfs_mount
 
     echo "setup NFS Server"
     configure_nfs
