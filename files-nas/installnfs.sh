@@ -7,7 +7,8 @@
 # STORAGE_ACCOUNT_SHARE=<STORAGE_ACCOUNT_SHARE>
 #
 
-CONVMVFS_MOUNT=${NFS_BASE}conv
+NFS_BASE_SHARE=${NFS_BASE}share
+CONVMVFS_MOUNT=${NFS_BASE}
 
 function apt_get_update() {
     retries=10
@@ -63,16 +64,16 @@ function configure_files_mount() {
     fi
 
     # add the line to fstab
-    mkdir -p ${NFS_BASE}
-    chown nobody:nogroup ${NFS_BASE}
-    grep "${NFS_BASE}" /etc/fstab >/dev/null 2>&1
+    mkdir -p ${NFS_BASE_SHARE}
+    chown nobody:nogroup ${NFS_BASE_SHARE}
+    grep "${NFS_BASE_SHARE}" /etc/fstab >/dev/null 2>&1
     if [ ${?} -eq 0 ];
     then
-        echo "Not adding ${NFS_BASE} to fstab again (it's already there!)"
+        echo "Not adding ${NFS_BASE_SHARE} to fstab again (it's already there!)"
     else
-        echo "//${STORAGE_ACCOUNT}.file.core.windows.net/${STORAGE_ACCOUNT_SHARE} ${NFS_BASE} cifs nofail,vers=3.0,credentials=${CREDFILE},dir_mode=0777,file_mode=0777,serverino" >> /etc/fstab
+        echo "//${STORAGE_ACCOUNT}.file.core.windows.net/${STORAGE_ACCOUNT_SHARE} ${NFS_BASE_SHARE} cifs nofail,vers=3.0,credentials=${CREDFILE},dir_mode=0777,file_mode=0777,serverino" >> /etc/fstab
     fi
-    mount ${NFS_BASE}
+    mount ${NFS_BASE_SHARE}
 }
 
 function configure_convmvfs_mount() {
@@ -84,7 +85,7 @@ function configure_convmvfs_mount() {
     chmod 700 $MOUNT_FILE
     /bin/cat <<EOM >$MOUNT_FILE
 #!/bin/bash
-/usr/bin/convmvfs \$1 -o srcdir=${NFS_BASE},icharset=iso-8859-1,ocharset=iso-8859-1,user_allow_other
+/usr/bin/convmvfs \$1 -o srcdir=${NFS_BASE_SHARE},icharset=iso-8859-1,ocharset=iso-8859-1
 EOM
 
     # add the line to fstab
