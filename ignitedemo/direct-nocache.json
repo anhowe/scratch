@@ -1,0 +1,38 @@
+{
+  "jobId": {
+    "value": "direct-nocache"
+  },
+  "poolId": {
+    "value": "pool1"
+  },
+  "adminUsername": {
+    "value": "azureuser"
+  },
+  "frameStart": {
+    "value": 0
+  },
+  "frameEnd": {
+    "value": 499
+  },
+  "frameStep": {
+    "value": 1
+  },
+  "mayaProjectPath": {
+    "value": "/nfs/southeastasia/scenes/autodeskWallOfDScene"
+  },
+  "sceneFile": {
+    "value": "/nfs/southeastasia/scenes/autodeskWallOfDScene/scenes/SEQ001/SHOT001/anim/versions/SEQ001_SHOT001_anim_v010_Imported.ma"
+  },  
+  "imagesOutputBasePath": {
+    "value": "/nfs/southeastasia/images"
+  },
+  "renderScriptPath": {
+    "value": "/nfs/southeastasia/src/render8gb.sh"
+  },
+  "debugPath": {
+    "value": "/nfs/southeastasia/debug"
+  },
+  "additionalFlags": {
+    "value": " -fnc name.#.ext "
+  }
+}
