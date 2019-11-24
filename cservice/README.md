@@ -42,6 +42,7 @@ Here are notes for troubleshooting:
 ## Template Parameters
 When you launch the installation of the cluster, you need to specify the following parameters:
 * `adminPassword`: self-explanatory
+* `jumpboxOS`: The type of OS to be used for the jumpbox can be either Windows or Linux
 * `jumpboxEndpointDNSName`: this is the public DNS name for the entrypoint that SWARM is going to use to deploy containers in the cluster.
 * `managementEndpointDNSName`: this is the public DNS name for the jumpbox that you will use to connect to the cluster. You just need to specify an unique name, the FQDN will be created by adding the necessary subdomains based on where the cluster is going to be created. Ex. <userID>MesosCluster, Azure will add westus.cloudapp.azure.com to create the FQDN for the jumpbox.
 * `applicationEndpointDNSName`: this is the public DNS for the application.  It has a load balancer with ports 80 and 443 open.
@@ -116,7 +117,7 @@ This walk through is based the wonderful digital ocean tutorial: https://www.dig
 
  ![Image of Chronos UI](https://raw.githubusercontent.com/anhowe/scratch/master/mesos-marathon/images/chronos-ui.png)
 
-2. Click Add and fill in the following details:
+2. Click New Job and fill in the following details:
  1. Name - "MyFirstApp"
  2. Command - "echo "my first app on Chronos""
  3. Owner, and Owner Name - you can put random information Here
